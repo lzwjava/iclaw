@@ -1,12 +1,12 @@
 {
-  "name": "copilot-cli",
+  "name": "mini-copilot",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "copilot": "src/cli.js"
+    "mini-copilot": "src/mini-copilot.js"
   },
   "scripts": {
-    "start": "node src/cli.js",
+    "start": "node src/mini-copilot.js",
     "login": "node scripts/login.js",
     "lint": "eslint ."
   },

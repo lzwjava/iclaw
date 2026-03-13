@@ -1,4 +1,4 @@
-# Copilot CLI
+# mini-copilot
 
 An interactive terminal REPL for chatting with GitHub Copilot, built with Node.js.
 
@@ -43,7 +43,7 @@ Type `.exit` or press `Ctrl+C` to quit.
 
 ## Available Scripts
 
-- `npm start` - Start the interactive CLI
+- `npm start` - Start mini-copilot
 - `npm run login` - Authenticate with GitHub via device flow
 - `npm run lint` - Run ESLint
 
@@ -51,11 +51,11 @@ Type `.exit` or press `Ctrl+C` to quit.
 
 ```
 scripts/
-└── login.js        # CLI login utility
+└── login.js            # CLI login utility
 
 src/
-└── cli.js          # Interactive REPL
+└── mini-copilot.js     # Interactive REPL
 
 public/
-└── config.json     # Generated token store (gitignored)
+└── config.json         # Generated token store (gitignored)
 ```
