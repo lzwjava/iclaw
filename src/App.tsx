@@ -88,30 +88,31 @@ function App() {
   const handleSend = async () => {
     if (!inputValue.trim()) return
 
-    const userMessage = { role: 'user', content: inputValue }
-    setMessages(prev => [...prev, userMessage])
-    setInputValue('')
-    
-    try {
-      let copilotToken = AuthService.getCopilotToken()
-      const githubToken = AuthService.getGithubToken()
+    // Validate tokens before adding user message
+    let copilotToken = AuthService.getCopilotToken()
+    const githubToken = AuthService.getGithubToken()
 
-      if (!copilotToken && githubToken) {
-        try {
-          const data = await AuthService.fetchCopilotToken(githubToken)
-          copilotToken = data.token
-        } catch (err) {
-          console.error('Failed to get copilot token:', err)
-          setMessages(prev => [...prev, { role: 'assistant', content: 'Error: Your GitHub token might be expired or doesn\'t have Copilot access.' }])
-          return
-        }
-      }
-
-      if (!copilotToken) {
+    if (!copilotToken) {
+      if (!githubToken) {
         setMessages(prev => [...prev, { role: 'assistant', content: 'Error: Please login with GitHub first.' }])
         return
       }
+      try {
+        const data = await AuthService.fetchCopilotToken(githubToken)
+        copilotToken = data.token
+      } catch (err) {
+        console.error('Failed to get copilot token:', err)
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Error: Your GitHub token might be expired or doesn\'t have Copilot access.' }])
+        return
+      }
+    }
 
+    // We have a valid copilot token, proceed
+    const userMessage = { role: 'user', content: inputValue }
+    setMessages(prev => [...prev, userMessage])
+    setInputValue('')
+
+    try {
       const response = await fetch('https://api.githubcopilot.com/chat/completions', {
         method: 'POST',
         headers: {
