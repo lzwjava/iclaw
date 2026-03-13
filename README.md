@@ -1,21 +1,13 @@
-# Copilot Chat
+# Copilot CLI
 
-A web-based chat interface for GitHub Copilot, built with React, TypeScript, and Vite.
+An interactive terminal REPL for chatting with GitHub Copilot, built with Node.js.
 
 ## Features
 
-- Chat with GitHub Copilot directly in your browser
-- Token-based authentication using GitHub OAuth
-- Automatic token refresh to maintain session
-- Clean, responsive chat interface
-- Support for Copilot's GPT-4o model
-
-## Tech Stack
-
-- **React 19** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **GitHub Copilot API** - AI chat completions
+- Multi-turn conversations with GitHub Copilot in your terminal
+- GitHub OAuth device flow authentication
+- Automatic Copilot token refresh during session
+- GPT-4o model
 
 ## Setup
 
@@ -24,68 +16,46 @@ A web-based chat interface for GitHub Copilot, built with React, TypeScript, and
    npm install
    ```
 
-2. Login using the CLI (required due to GitHub CORS restrictions):
+2. Authenticate with GitHub:
    ```bash
    npm run login
    ```
-   This will:
-   - Open a GitHub device authorization flow
-   - Save your GitHub token to `public/config.json`
+   This runs the GitHub device authorization flow and saves your token to `public/config.json`.
 
-3. Start the development server:
+3. Start the REPL:
    ```bash
-   npm run dev
+   npm start
    ```
 
-4. Open your browser to the URL shown (typically `http://localhost:5173`)
+## Usage
+
+```
+> What is a closure in JavaScript?
+
+GitHub Copilot: A closure is ...
+
+> Can you give me an example?
+
+GitHub Copilot: Sure! Here's an example ...
+```
+
+Type `.exit` or press `Ctrl+C` to quit.
 
 ## Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run lint` - Run ESLint
-- `npm run preview` - Preview production build
+- `npm start` - Start the interactive CLI
 - `npm run login` - Authenticate with GitHub via device flow
-
-## Authentication
-
-This app uses GitHub's OAuth Device Flow for authentication:
-
-1. Run `npm run login` in your terminal
-2. Visit the verification URL and enter the provided code
-3. Authorize the app on GitHub
-4. Your token is saved to `public/config.json`
-5. Refresh the web app to start chatting
-
-**Note:** Browser-based login is restricted by GitHub's CORS policies, which is why the CLI login is required.
-
-## API Integration
-
-The app communicates with:
-- GitHub OAuth endpoints for device authorization
-- GitHub Copilot API for chat completions (`https://api.githubcopilot.com/chat/completions`)
-- Automatic token refresh using GitHub's Copilot internal token endpoint
+- `npm run lint` - Run ESLint
 
 ## Project Structure
 
 ```
-src/
-├── App.tsx              # Main chat interface component
-├── main.tsx             # Application entry point
-├── services/
-│   └── auth.ts          # Authentication service
-└── assets/              # Static assets
-
 scripts/
-└── login.js             # CLI login utility
+└── login.js        # CLI login utility
+
+src/
+└── cli.js          # Interactive REPL
 
 public/
-└── config.json          # Generated config (gitignored)
+└── config.json     # Generated token store (gitignored)
 ```
-
-## Development Notes
-
-- Uses React 19's modern features
-- Token refresh happens automatically every ~24 minutes
-- Session data stored in localStorage
-- Copilot tokens include a 1-minute safety buffer before expiry
