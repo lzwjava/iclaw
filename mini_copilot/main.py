@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -7,7 +8,7 @@ from pathlib import Path
 try:
     import readline
 
-    COMMANDS = ["/login", "/help", ".exit"]
+    COMMANDS = ["/login", "/help", "/copy", ".exit"]
 
     def completer(text, state):
         matches = [c for c in COMMANDS if c.startswith(text)]
@@ -23,6 +24,7 @@ from mini_copilot.github_api import chat, get_copilot_token
 COMMANDS_HELP = [
     ("/login", "Authenticate with GitHub"),
     ("/help", "Show available commands"),
+    ("/copy", "Copy last Copilot response to clipboard"),
     (".exit", "Quit"),
 ]
 
@@ -60,10 +62,22 @@ def run_login():
         return None
 
 
+def copy_to_clipboard(text):
+    if sys.platform == "darwin":
+        subprocess.run(["pbcopy"], input=text.encode(), check=True)
+    elif sys.platform == "win32":
+        subprocess.run(["clip"], input=text.encode(), check=True)
+    else:
+        subprocess.run(
+            ["xclip", "-selection", "clipboard"], input=text.encode(), check=True
+        )
+
+
 def main():
     github_token = load_github_token()
     copilot_token = None
     token_expiry = 0
+    last_reply = None
 
     if github_token:
         print("Connecting to GitHub Copilot...")
@@ -99,6 +113,16 @@ def main():
         if user_input == ".exit":
             print("Goodbye!")
             break
+        if user_input == "/copy":
+            if last_reply:
+                try:
+                    copy_to_clipboard(last_reply)
+                    print("Copied to clipboard.\n")
+                except Exception as e:
+                    print(f"Error copying to clipboard: {e}", file=sys.stderr)
+            else:
+                print("Nothing to copy yet.\n")
+            continue
         if user_input == "/login":
             github_token = run_login()
             if github_token:
@@ -122,6 +146,7 @@ def main():
             messages.append({"role": "user", "content": user_input})
             reply = chat(messages, copilot_token)
             messages.append({"role": "assistant", "content": reply})
+            last_reply = reply
 
             print(f"\nGitHub Copilot: {reply}\n")
         except Exception as e:
