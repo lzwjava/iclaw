@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import json
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -8,7 +7,7 @@ from pathlib import Path
 try:
     import readline
 
-    COMMANDS = ["/login", "/help", "/copy", ".exit"]
+    COMMANDS = ["/login", "/help", "/copy", "/model", ".exit"]
 
     def completer(text, state):
         matches = [c for c in COMMANDS if c.startswith(text)]
@@ -25,7 +24,17 @@ COMMANDS_HELP = [
     ("/login", "Authenticate with GitHub"),
     ("/help", "Show available commands"),
     ("/copy", "Copy last Copilot response to clipboard"),
+    ("/model", "Select the model to use"),
     (".exit", "Quit"),
+]
+
+AVAILABLE_MODELS = [
+    "gpt-4o",
+    "gpt-4",
+    "gpt-3.5-turbo",
+    "o1-preview",
+    "o1-mini",
+    "claude-3.5-sonnet",
 ]
 
 CONFIG_PATH = Path.home() / ".config" / "mini-copilot" / "config.json"
@@ -63,14 +72,9 @@ def run_login():
 
 
 def copy_to_clipboard(text):
-    if sys.platform == "darwin":
-        subprocess.run(["pbcopy"], input=text.encode(), check=True)
-    elif sys.platform == "win32":
-        subprocess.run(["clip"], input=text.encode(), check=True)
-    else:
-        subprocess.run(
-            ["xclip", "-selection", "clipboard"], input=text.encode(), check=True
-        )
+    import pyperclip
+
+    pyperclip.copy(text)
 
 
 def main():
@@ -90,6 +94,7 @@ def main():
         print("No token found. Type /login to authenticate.\n")
 
     messages = []
+    current_model = "gpt-4o"
 
     print(
         "GitHub Copilot CLI ready. Type your message, /login to authenticate, or .exit to quit.\n"
@@ -123,6 +128,34 @@ def main():
             else:
                 print("Nothing to copy yet.\n")
             continue
+        if user_input == "/model":
+            print(f"\nCurrent model: {current_model}")
+            print("Available models:")
+            for i, m in enumerate(AVAILABLE_MODELS):
+                marker = "*" if m == current_model else " "
+                print(f"  {marker} {i + 1}. {m}")
+            try:
+                choice = input(
+                    "Select model (number or name, Enter to keep current): "
+                ).strip()
+                if choice:
+                    if choice.isdigit():
+                        idx = int(choice) - 1
+                        if 0 <= idx < len(AVAILABLE_MODELS):
+                            current_model = AVAILABLE_MODELS[idx]
+                            print(f"Model set to: {current_model}\n")
+                        else:
+                            print("Invalid selection.\n")
+                    elif choice in AVAILABLE_MODELS:
+                        current_model = choice
+                        print(f"Model set to: {current_model}\n")
+                    else:
+                        print(f"Unknown model '{choice}'. Keeping {current_model}\n")
+                else:
+                    print()
+            except (EOFError, KeyboardInterrupt):
+                print()
+            continue
         if user_input == "/login":
             github_token = run_login()
             if github_token:
@@ -144,7 +177,7 @@ def main():
                 token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
 
             messages.append({"role": "user", "content": user_input})
-            reply = chat(messages, copilot_token)
+            reply = chat(messages, copilot_token, current_model)
             messages.append({"role": "assistant", "content": reply})
             last_reply = reply
 

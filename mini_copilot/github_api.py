@@ -18,7 +18,7 @@ def get_copilot_token(github_token):
     return resp.json()["token"]
 
 
-def chat(messages, copilot_token):
+def chat(messages, copilot_token, model="gpt-4o"):
     resp = requests.post(
         "https://api.githubcopilot.com/chat/completions",
         headers={
@@ -29,7 +29,7 @@ def chat(messages, copilot_token):
             "User-Agent": "GithubCopilot/1.155.0",
             "Copilot-Integration-Id": "vscode-chat",
         },
-        json={"model": "gpt-4o", "messages": messages, "stream": False},
+        json={"model": model, "messages": messages, "stream": False},
     )
     if not resp.ok:
         raise RuntimeError(
