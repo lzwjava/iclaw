@@ -1,73 +1,91 @@
-# React + TypeScript + Vite
+# Copilot Chat
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web-based chat interface for GitHub Copilot, built with React, TypeScript, and Vite.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Chat with GitHub Copilot directly in your browser
+- Token-based authentication using GitHub OAuth
+- Automatic token refresh to maintain session
+- Clean, responsive chat interface
+- Support for Copilot's GPT-4o model
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **React 19** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **GitHub Copilot API** - AI chat completions
 
-## Expanding the ESLint configuration
+## Setup
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2. Login using the CLI (required due to GitHub CORS restrictions):
+   ```bash
+   npm run login
+   ```
+   This will:
+   - Open a GitHub device authorization flow
+   - Save your GitHub token to `public/config.json`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+4. Open your browser to the URL shown (typically `http://localhost:5173`)
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run lint` - Run ESLint
+- `npm run preview` - Preview production build
+- `npm run login` - Authenticate with GitHub via device flow
+
+## Authentication
+
+This app uses GitHub's OAuth Device Flow for authentication:
+
+1. Run `npm run login` in your terminal
+2. Visit the verification URL and enter the provided code
+3. Authorize the app on GitHub
+4. Your token is saved to `public/config.json`
+5. Refresh the web app to start chatting
+
+**Note:** Browser-based login is restricted by GitHub's CORS policies, which is why the CLI login is required.
+
+## API Integration
+
+The app communicates with:
+- GitHub OAuth endpoints for device authorization
+- GitHub Copilot API for chat completions (`https://api.githubcopilot.com/chat/completions`)
+- Automatic token refresh using GitHub's Copilot internal token endpoint
+
+## Project Structure
+
+```
+src/
+├── App.tsx              # Main chat interface component
+├── main.tsx             # Application entry point
+├── services/
+│   └── auth.ts          # Authentication service
+└── assets/              # Static assets
+
+scripts/
+└── login.js             # CLI login utility
+
+public/
+└── config.json          # Generated config (gitignored)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Development Notes
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- Uses React 19's modern features
+- Token refresh happens automatically every ~24 minutes
+- Session data stored in localStorage
+- Copilot tokens include a 1-minute safety buffer before expiry
