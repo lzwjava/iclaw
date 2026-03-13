@@ -1,5 +1,4 @@
-const GITHUB_CLIENT_ID = 'Iv1.b507a08c87ecfe98'; // Standard GitHub Copilot Client ID
-const GITHUB_REDIRECT_URI = window.location.origin;
+const GITHUB_CLIENT_ID = '01ab8ac9400c4e429b23'; // VSCode's client ID
 
 export interface CopilotTokenResponse {
   token: string;
@@ -21,8 +20,8 @@ export const AuthService = {
     if (!tokenData) return null;
     
     const { token, expires_at } = JSON.parse(tokenData);
-    // Add 5 minute buffer
-    if (Date.now() / 1000 > (expires_at - 300)) {
+    // Add 1 minute buffer (60 seconds) as per instructions Step 3
+    if (Date.now() / 1000 > (expires_at - 60)) {
       localStorage.removeItem('copilot_token');
       return null;
     }
@@ -30,12 +29,17 @@ export const AuthService = {
   },
 
   async fetchCopilotToken(githubToken: string): Promise<CopilotTokenResponse> {
+    const headers = {
+      'Authorization': `token ${githubToken}`,
+      'Accept': 'application/json',
+      'editor-version': 'vscode/1.85.1',
+      'editor-plugin-version': 'copilot/1.155.0',
+      'user-agent': 'GithubCopilot/1.155.0',
+      'Copilot-Integration-Id': 'vscode-chat',
+    };
+
     const response = await fetch('https://api.github.com/copilot_internal/v2/token', {
-      headers: {
-        'Authorization': `token ${githubToken}`,
-        'Accept': 'application/json',
-        'Editor-Version': 'vscode/1.91.0',
-      },
+      headers,
     });
 
     if (!response.ok) {
@@ -51,21 +55,28 @@ export const AuthService = {
     return data;
   },
 
-  redirectToGithub() {
-    const scopes = 'read:user'; 
-    const url = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=${scopes}&redirect_uri=${GITHUB_REDIRECT_URI}`;
-    window.location.href = url;
+  async getDeviceCode() {
+    const response = await fetch('https://github.com/login/device/code', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: GITHUB_CLIENT_ID,
+        scope: 'read:user',
+      }),
+    });
+
+    if (!response.ok) throw new Error('Failed to get device code');
+    return await response.json();
   },
 
-  async exchangeCodeForToken(code: string): Promise<string> {
-    // NOTE: GitHub's access_token endpoint does not support CORS.
-    // In an enterprise environment, you should use a backend proxy.
-    // Example: const PROXY_URL = 'https://your-api.com/auth/github';
+  async pollForToken(deviceCode: string): Promise<string> {
+    const interval = 5000; // Poll every 5 seconds
     
-    const PROXY_URL = 'https://github.com/login/oauth/access_token'; 
-    
-    try {
-      const response = await fetch(PROXY_URL, {
+    while (true) {
+      const response = await fetch('https://github.com/login/oauth/access_token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,19 +84,27 @@ export const AuthService = {
         },
         body: JSON.stringify({
           client_id: GITHUB_CLIENT_ID,
-          code: code,
-          redirect_uri: GITHUB_REDIRECT_URI,
+          device_code: deviceCode,
+          grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to exchange code');
-      
       const data = await response.json();
-      if (data.access_token) return data.access_token;
-      throw new Error(data.error_description || 'No access token received');
-    } catch (error) {
-      console.error('Direct token exchange failed:', error);
-      throw new Error('Token exchange failed. A backend proxy might be required for Web OAuth.');
+
+      if (data.access_token) {
+        return data.access_token;
+      }
+
+      if (data.error === 'authorization_pending') {
+        await new Promise(resolve => setTimeout(resolve, interval));
+        continue;
+      }
+
+      throw new Error(data.error_description || 'Token polling failed');
     }
-  }
+  },
+
+  redirectToGithub() {
+    // This will be replaced by the Device Flow UI in App.tsx
+  },
 };
