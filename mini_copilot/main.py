@@ -6,6 +6,26 @@ from pathlib import Path
 
 import requests
 
+try:
+    import readline
+
+    COMMANDS = ["/login", "/help", ".exit"]
+
+    def completer(text, state):
+        matches = [c for c in COMMANDS if c.startswith(text)]
+        return matches[state] if state < len(matches) else None
+
+    readline.set_completer(completer)
+    readline.parse_and_bind("tab: complete")
+except ImportError:
+    pass
+
+COMMANDS_HELP = [
+    ("/login", "Authenticate with GitHub"),
+    ("/help", "Show available commands"),
+    (".exit", "Quit"),
+]
+
 CONFIG_PATH = Path.home() / ".config" / "mini-copilot" / "config.json"
 TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds (~24 minutes)
 
@@ -105,6 +125,12 @@ def main():
             break
 
         if not user_input:
+            continue
+        if user_input in ("/", "/help"):
+            print("\nAvailable commands:")
+            for cmd, desc in COMMANDS_HELP:
+                print(f"  {cmd:<10} {desc}")
+            print()
             continue
         if user_input == ".exit":
             print("Goodbye!")
