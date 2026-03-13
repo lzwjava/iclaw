@@ -19,6 +19,7 @@ except ImportError:
     pass
 
 from mini_copilot.github_api import chat, get_copilot_token, get_models
+from mini_copilot.web_search import web_search
 
 COMMANDS_HELP = [
     ("/login", "Authenticate with GitHub"),
@@ -186,7 +187,32 @@ def main():
                 copilot_token = get_copilot_token(github_token)
                 token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
 
-            messages.append({"role": "user", "content": user_input})
+            # Ask Copilot if web search is needed
+            decision_messages = [
+                {
+                    "role": "user",
+                    "content": (
+                        f"Does answering this question require a web search for current, "
+                        f"real-time, or recent information you may not know? "
+                        f"Reply with only YES or NO.\n\nQuestion: {user_input}"
+                    ),
+                }
+            ]
+            decision = (
+                chat(decision_messages, copilot_token, current_model).strip().upper()
+            )
+
+            content = user_input
+            if decision.startswith("YES"):
+                search_context = web_search(user_input)
+                content = (
+                    f"{user_input}\n\n"
+                    f"--- Web search results ---\n{search_context}\n"
+                    f"--- End of web search results ---\n\n"
+                    f"Please answer based on the above web search results."
+                )
+
+            messages.append({"role": "user", "content": content})
             reply = chat(messages, copilot_token, current_model)
             messages.append({"role": "assistant", "content": reply})
             last_reply = reply
