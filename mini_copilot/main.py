@@ -12,16 +12,31 @@ TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds (~24 minutes)
 
 def load_github_token():
     if not CONFIG_PATH.exists():
-        print("No token found. Run `mini-copilot-login` first.", file=sys.stderr)
-        sys.exit(1)
+        return None
     config = json.loads(CONFIG_PATH.read_text())
-    if not config.get("github_token"):
-        print(
-            "Invalid config: missing github_token. Run `mini-copilot-login` first.",
-            file=sys.stderr,
+    return config.get("github_token") or None
+
+
+def run_login():
+    from mini_copilot.login import get_device_code, poll_for_access_token
+    from datetime import datetime, timezone
+
+    try:
+        device_data = get_device_code()
+        github_token = poll_for_access_token(
+            device_data["device_code"], device_data.get("interval", 5)
         )
-        sys.exit(1)
-    return config["github_token"]
+        config = {
+            "github_token": github_token,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        CONFIG_PATH.write_text(json.dumps(config, indent=2))
+        print(f"\nSaved GitHub token to {CONFIG_PATH}")
+        return github_token
+    except Exception as e:
+        print(f"\nLogin error: {e}", file=sys.stderr)
+        return None
 
 
 def get_copilot_token(github_token):
@@ -63,14 +78,24 @@ def chat(messages, copilot_token):
 
 def main():
     github_token = load_github_token()
+    copilot_token = None
+    token_expiry = 0
 
-    print("Connecting to GitHub Copilot...")
-    copilot_token = get_copilot_token(github_token)
-    token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
+    if github_token:
+        print("Connecting to GitHub Copilot...")
+        try:
+            copilot_token = get_copilot_token(github_token)
+            token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
+        except Exception as e:
+            print(f"Warning: {e}", file=sys.stderr)
+    else:
+        print("No token found. Type /login to authenticate.\n")
 
     messages = []
 
-    print("GitHub Copilot CLI ready. Type your message or .exit to quit.\n")
+    print(
+        "GitHub Copilot CLI ready. Type your message, /login to authenticate, or .exit to quit.\n"
+    )
 
     while True:
         try:
@@ -84,6 +109,20 @@ def main():
         if user_input == ".exit":
             print("Goodbye!")
             break
+        if user_input == "/login":
+            github_token = run_login()
+            if github_token:
+                try:
+                    copilot_token = get_copilot_token(github_token)
+                    token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
+                    print("Connected to GitHub Copilot.\n")
+                except Exception as e:
+                    print(f"Error: {e}", file=sys.stderr)
+            continue
+
+        if not copilot_token:
+            print("Not authenticated. Type /login first.", file=sys.stderr)
+            continue
 
         try:
             if time.monotonic() >= token_expiry:
