@@ -20,6 +20,7 @@ except ImportError:
 
 from mini_copilot.github_api import chat, get_copilot_token
 from mini_copilot.web_search import web_search
+from mini_copilot.exec_tool import exec_command as exec
 from mini_copilot.commands.auth import handle_login_command
 from mini_copilot.commands.model import handle_model_command
 from mini_copilot.commands.search_provider import handle_search_provider_command
@@ -59,7 +60,25 @@ WEB_SEARCH_TOOL = {
         },
     },
 }
-TOOLS = [WEB_SEARCH_TOOL]
+
+EXEC_COMMAND_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "exec",
+        "description": "Execute a shell command on the local system and return the output.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "description": "The shell command to execute.",
+                },
+            },
+            "required": ["command"],
+        },
+    },
+}
+TOOLS = [WEB_SEARCH_TOOL, EXEC_COMMAND_TOOL]
 
 
 def load_github_token():
@@ -165,6 +184,19 @@ def main():
                                 "role": "tool",
                                 "name": function_name,
                                 "content": search_context,
+                            }
+                        )
+
+                    if function_name == "exec":
+                        command = function_args.get("command")
+                        output = exec(command)
+
+                        messages.append(
+                            {
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": function_name,
+                                "content": output,
                             }
                         )
                 response_message = chat(
