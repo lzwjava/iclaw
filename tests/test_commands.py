@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from iclaw.commands import model, search_provider, auth, utils
 
+
 class TestCommands(unittest.TestCase):
     @patch("iclaw.commands.model.get_models")
     @patch("iclaw.commands.model.input", return_value="1")
@@ -19,12 +20,13 @@ class TestCommands(unittest.TestCase):
 
     @patch("iclaw.commands.auth.get_device_code")
     @patch("iclaw.commands.auth.poll_for_access_token")
-    def test_handle_login_command(self, mock_poll, mock_device):
-        mock_device.return_value = {"device_code": "dc"}
+    @patch("iclaw.commands.auth.input", return_value="1")
+    def test_handle_login_command(self, mock_input, mock_poll, mock_device):
+        mock_device.return_value = {"device_code": "dc", "interval": 5}
         mock_poll.return_value = "at"
         mock_path = MagicMock()
         with patch("sys.stdout"):
-            res = auth.handle_login_command(mock_path, 1)
+            res = auth.handle_login_command(mock_path)
         self.assertEqual(res, "at")
 
     @patch("iclaw.commands.utils.sys")
@@ -35,6 +37,7 @@ class TestCommands(unittest.TestCase):
             with patch("sys.stdout"):
                 utils.handle_copy_command("text")
         mock_py.copy.assert_called_with("text")
+
 
 if __name__ == "__main__":
     unittest.main()
