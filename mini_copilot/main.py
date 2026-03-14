@@ -7,7 +7,7 @@ from pathlib import Path
 try:
     import readline
 
-    COMMANDS = ["/login", "/help", "/copy", "/model", ".exit"]
+    COMMANDS = ["/login", "/help", "/copy", "/model", "/search_provider", ".exit"]
 
     def completer(text, state):
         matches = [c for c in COMMANDS if c.startswith(text)]
@@ -26,8 +26,11 @@ COMMANDS_HELP = [
     ("/help", "Show available commands"),
     ("/copy", "Copy last Copilot response to clipboard"),
     ("/model", "Select the model to use"),
+    ("/search_provider", "Select the web search provider"),
     (".exit", "Quit"),
 ]
+
+SEARCH_PROVIDERS = ["duckduckgo"]
 
 CONFIG_PATH = Path.home() / ".config" / "mini-copilot" / "config.json"
 TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds
@@ -47,8 +50,8 @@ WEB_SEARCH_TOOL = {
                 },
                 "num_results": {
                     "type": "integer",
-                    "description": "Number of search results to return (default 5).",
-                    "default": 5,
+                    "description": "Number of search results to return (default 20).",
+                    "default": 20,
                 },
             },
             "required": ["query"],
@@ -98,6 +101,7 @@ def main():
     copilot_token = None
     token_expiry = 0
     last_reply = None
+    search_provider = "duckduckgo"
 
     if github_token:
         print("Connecting to GitHub Copilot...")
@@ -110,11 +114,11 @@ def main():
         print("No token found. Type /login to authenticate.\n")
 
     messages = []
-    current_model = "gpt-4o"
+    current_model = "gpt-5.4"
 
     print("GitHub Copilot CLI ready. Available commands:")
     for cmd, desc in COMMANDS_HELP:
-        print(f"  {cmd:<10} {desc}")
+        print(f"  {cmd:<20} {desc}")
     print()
 
     while True:
@@ -129,7 +133,7 @@ def main():
         if user_input in ("/", "/help"):
             print("\nAvailable commands:")
             for cmd, desc in COMMANDS_HELP:
-                print(f"  {cmd:<10} {desc}")
+                print(f"  {cmd:<20} {desc}")
             print()
             continue
         if user_input == ".exit":
@@ -187,6 +191,29 @@ def main():
             except (EOFError, KeyboardInterrupt):
                 print()
             continue
+        if user_input == "/search_provider":
+            print(f"\nCurrent search provider: {search_provider}")
+            print("Available providers:")
+            for i, prov in enumerate(SEARCH_PROVIDERS, 1):
+                marker = "*" if prov == search_provider else " "
+                print(f"  {marker} {i}. {prov}")
+            try:
+                choice = input("Select search provider (number, Enter to keep current): ").strip()
+                if choice:
+                    if choice.isdigit():
+                        n = int(choice)
+                        if 1 <= n <= len(SEARCH_PROVIDERS):
+                            search_provider = SEARCH_PROVIDERS[n - 1]
+                            print(f"Search provider set to: {search_provider}\n")
+                        else:
+                            print("Invalid selection.\n")
+                    else:
+                        print("Please enter a number.\n")
+                else:
+                    print()
+            except (EOFError, KeyboardInterrupt):
+                print()
+            continue
         if user_input == "/login":
             github_token = run_login()
             if github_token:
@@ -221,8 +248,9 @@ def main():
                     
                     if function_name == "web_search":
                         search_query = function_args.get("query")
-                        num_results = function_args.get("num_results", 5)
+                        num_results = function_args.get("num_results", 20)
                         
+                        # In the future, search_provider can be passed to web_search()
                         search_context = web_search(search_query, num_results=num_results)
                         
                         messages.append({
