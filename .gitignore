@@ -28,4 +28,4 @@ env/
 .DS_Store
 *.sw?
 
-public/config.json
+public/config.jsonnode_modules/
