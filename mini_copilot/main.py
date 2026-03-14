@@ -110,7 +110,7 @@ def main():
         print("No token found. Type /login to authenticate.\n")
 
     messages = []
-    current_model = "gpt-4o"
+    current_model = "gpt-5.2"
 
     print("GitHub Copilot CLI ready. Available commands:")
     for cmd, desc in COMMANDS_HELP:
