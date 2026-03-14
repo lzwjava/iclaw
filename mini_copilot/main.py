@@ -20,7 +20,7 @@ except ImportError:
 
 from mini_copilot.github_api import chat, get_copilot_token
 from mini_copilot.web_search import web_search
-from mini_copilot.exec_tool import exec_command
+from mini_copilot.exec_tool import exec_command as exec
 from mini_copilot.commands.auth import handle_login_command
 from mini_copilot.commands.model import handle_model_command
 from mini_copilot.commands.search_provider import handle_search_provider_command
@@ -64,7 +64,7 @@ WEB_SEARCH_TOOL = {
 EXEC_COMMAND_TOOL = {
     "type": "function",
     "function": {
-        "name": "exec_command",
+        "name": "exec",
         "description": "Execute a shell command on the local system and return the output.",
         "parameters": {
             "type": "object",
@@ -187,9 +187,9 @@ def main():
                             }
                         )
 
-                    if function_name == "exec_command":
+                    if function_name == "exec":
                         command = function_args.get("command")
-                        output = exec_command(command)
+                        output = exec(command)
 
                         messages.append(
                             {
