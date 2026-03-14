@@ -21,6 +21,7 @@ except ImportError:
 from mini_copilot.github_api import chat, get_copilot_token
 from mini_copilot.web_search import web_search
 from mini_copilot.exec_tool import exec_command as exec
+from tools.edit_tool import EditTool
 from mini_copilot.commands.auth import handle_login_command
 from mini_copilot.commands.model import handle_model_command
 from mini_copilot.commands.search_provider import handle_search_provider_command
@@ -78,7 +79,29 @@ EXEC_COMMAND_TOOL = {
         },
     },
 }
-TOOLS = [WEB_SEARCH_TOOL, EXEC_COMMAND_TOOL]
+
+EDIT_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "edit",
+        "description": "Apply a unified diff edit to a file on the local system.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "The path to the file to edit.",
+                },
+                "edit_content": {
+                    "type": "string",
+                    "description": "The unified diff content to apply.",
+                },
+            },
+            "required": ["file_path", "edit_content"],
+        },
+    },
+}
+TOOLS = [WEB_SEARCH_TOOL, EXEC_COMMAND_TOOL, EDIT_TOOL]
 
 
 def load_github_token():
@@ -197,6 +220,23 @@ def main():
                                 "role": "tool",
                                 "name": function_name,
                                 "content": output,
+                            }
+                        )
+
+                    if function_name == "edit":
+                        file_path = function_args.get("file_path")
+                        edit_content = function_args.get("edit_content")
+
+                        result = EditTool.edit(file_path, edit_content)
+                        with open(file_path, "w") as f:
+                            f.write(result)
+
+                        messages.append(
+                            {
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": function_name,
+                                "content": f"Successfully edited {file_path}",
                             }
                         )
                 response_message = chat(
