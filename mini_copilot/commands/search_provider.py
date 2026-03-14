@@ -1,4 +1,5 @@
-SEARCH_PROVIDERS = ["duckduckgo"]
+SEARCH_PROVIDERS = ["duckduckgo", "startpage"]
+
 
 def handle_search_provider_command(search_provider):
     print(f"\nCurrent search provider: {search_provider}")
@@ -6,9 +7,11 @@ def handle_search_provider_command(search_provider):
     for i, prov in enumerate(SEARCH_PROVIDERS, 1):
         marker = "*" if prov == search_provider else " "
         print(f"  {marker} {i}. {prov}")
-        
+
     try:
-        choice = input("Select search provider (number, Enter to keep current): ").strip()
+        choice = input(
+            "Select search provider (number, Enter to keep current): "
+        ).strip()
         if choice:
             if choice.isdigit():
                 n = int(choice)
@@ -21,5 +24,5 @@ def handle_search_provider_command(search_provider):
                 print("Please enter a number.\n")
     except (EOFError, KeyboardInterrupt):
         print()
-        
+
     return search_provider

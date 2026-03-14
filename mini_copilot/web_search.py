@@ -50,6 +50,43 @@ def search_ddg(query, num_results=10):
     return results[:num_results]
 
 
+def search_startpage(query, num_results=20):
+    """Using Startpage search"""
+    url = "https://www.startpage.com/sp/search"
+    params = {
+        "query": query,
+        "cat": "web",
+        "language": "english",
+    }
+
+    try:
+        res = requests.get(
+            url, params=params, headers=HEADERS, proxies=PROXY, timeout=10
+        )
+        res.raise_for_status()
+    except Exception as e:
+        print(f"[web search] Error searching Startpage: {e}")
+        return []
+
+    soup = BeautifulSoup(res.text, "html.parser")
+    results = []
+
+    search_items = soup.select(".result")
+
+    for item in search_items:
+        link_tag = item.select_one("a.result-link")
+        title_tag = item.select_one(".wgl-title")
+
+        if link_tag and link_tag.has_attr("href") and title_tag:
+            href = link_tag["href"]
+            title = title_tag.get_text(strip=True)
+            # Ensure it's an external link
+            if isinstance(href, str) and href.startswith("http"):
+                results.append({"title": title, "url": href})
+
+    return results[:num_results]
+
+
 def extract_text_from_url(url):
     try:
         session = requests.Session()
@@ -130,10 +167,15 @@ def format_llm_output(results):
     return "\n\n".join(blocks)
 
 
-def web_search(query, num_results=5):
+def web_search(query, num_results=5, provider="duckduckgo"):
     """Function to be called as a tool."""
-    print(f"[web search] Searching: {query}")
-    search_results = search_ddg(query, num_results=num_results)
+    print(f"[web search] Searching ({provider}): {query}")
+
+    if provider == "startpage":
+        search_results = search_startpage(query, num_results=num_results)
+    else:
+        search_results = search_ddg(query, num_results=num_results)
+
     processed_results = []
 
     if not search_results:
@@ -151,7 +193,9 @@ def web_search(query, num_results=5):
                 processed_results.append({**info, "content": content})
                 print(f"[web search] Fetched: {info['url']}")
             except Exception:
-                processed_results.append({**info, "content": "Failed to extract content."})
+                processed_results.append(
+                    {**info, "content": "Failed to extract content."}
+                )
 
     # Sort results to match original search order
     url_order = {res["url"]: i for i, res in enumerate(search_results)}
@@ -162,12 +206,17 @@ def web_search(query, num_results=5):
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(
         description="Optimized DDG Search & Extract for LLMs."
     )
     parser.add_argument("query", help="The search query")
     parser.add_argument(
-        "-n", "--num_results", type=int, default=5, help="Number of results (default: 5)"
+        "-n",
+        "--num_results",
+        type=int,
+        default=5,
+        help="Number of results (default: 5)",
     )
     args = parser.parse_args()
 

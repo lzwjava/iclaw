@@ -6,10 +6,13 @@ from pathlib import Path
 
 try:
     import readline
+
     COMMANDS = ["/login", "/help", "/copy", "/model", "/search_provider", ".exit"]
+
     def completer(text, state):
         matches = [c for c in COMMANDS if c.startswith(text)]
         return matches[state] if state < len(matches) else None
+
     readline.set_completer(completer)
     readline.parse_and_bind("tab: complete")
 except ImportError:
@@ -30,8 +33,6 @@ COMMANDS_HELP = [
     ("/search_provider", "Select the web search provider"),
     (".exit", "Quit"),
 ]
-
-SEARCH_PROVIDERS = ["duckduckgo"]
 
 CONFIG_PATH = Path.home() / ".config" / "mini-copilot" / "config.json"
 TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds
@@ -60,10 +61,13 @@ WEB_SEARCH_TOOL = {
 }
 TOOLS = [WEB_SEARCH_TOOL]
 
+
 def load_github_token():
-    if not CONFIG_PATH.exists(): return None
+    if not CONFIG_PATH.exists():
+        return None
     config = json.loads(CONFIG_PATH.read_text())
     return config.get("github_token")
+
 
 def main():
     github_token = load_github_token()
@@ -93,21 +97,29 @@ def main():
         try:
             user_input = input("> ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\nGoodbye!"); break
+            print("\nGoodbye!")
+            break
 
-        if not user_input: continue
+        if not user_input:
+            continue
         if user_input in ("/", "/help"):
             print("\nAvailable commands:")
             for cmd, desc in COMMANDS_HELP:
                 print(f"  {cmd:<20} {desc}")
-            print(); continue
-        if user_input == ".exit": print("Goodbye!"); break
+            print()
+            continue
+        if user_input == ".exit":
+            print("Goodbye!")
+            break
         if user_input == "/copy":
-            handle_copy_command(last_reply); continue
+            handle_copy_command(last_reply)
+            continue
         if user_input == "/model":
-            current_model = handle_model_command(copilot_token, current_model); continue
+            current_model = handle_model_command(copilot_token, current_model)
+            continue
         if user_input == "/search_provider":
-            search_provider = handle_search_provider_command(search_provider); continue
+            search_provider = handle_search_provider_command(search_provider)
+            continue
         if user_input == "/login":
             github_token = handle_login_command(CONFIG_PATH, TOKEN_REFRESH_INTERVAL)
             if github_token:
@@ -115,11 +127,13 @@ def main():
                     copilot_token = get_copilot_token(github_token)
                     token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
                     print("Connected to GitHub Copilot.\n")
-                except Exception as e: print(f"Error: {e}", file=sys.stderr)
+                except Exception as e:
+                    print(f"Error: {e}", file=sys.stderr)
             continue
 
         if not copilot_token:
-            print("Not authenticated. Type /login first.", file=sys.stderr); continue
+            print("Not authenticated. Type /login first.", file=sys.stderr)
+            continue
 
         try:
             if time.monotonic() >= token_expiry:
@@ -128,32 +142,42 @@ def main():
 
             messages.append({"role": "user", "content": user_input})
             response_message = chat(messages, copilot_token, current_model, tools=TOOLS)
-            
+
             while response_message.get("tool_calls"):
                 messages.append(response_message)
                 for tool_call in response_message["tool_calls"]:
                     function_name = tool_call["function"]["name"]
                     function_args = json.loads(tool_call["function"]["arguments"])
-                    
+
                     if function_name == "web_search":
                         search_query = function_args.get("query")
                         num_results = function_args.get("num_results", 20)
-                        
-                        search_context = web_search(search_query, num_results=num_results)
-                        
-                        messages.append({
-                            "tool_call_id": tool_call["id"],
-                            "role": "tool",
-                            "name": function_name,
-                            "content": search_context,
-                        })
-                response_message = chat(messages, copilot_token, current_model, tools=TOOLS)
+
+                        search_context = web_search(
+                            search_query,
+                            num_results=num_results,
+                            provider=search_provider,
+                        )
+
+                        messages.append(
+                            {
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": function_name,
+                                "content": search_context,
+                            }
+                        )
+                response_message = chat(
+                    messages, copilot_token, current_model, tools=TOOLS
+                )
 
             reply = response_message["content"]
             messages.append({"role": "assistant", "content": reply})
             last_reply = reply
             print(f"\n{reply}\n")
-        except Exception as e: print(f"Error: {e}", file=sys.stderr)
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+
 
 if __name__ == "__main__":
     main()
