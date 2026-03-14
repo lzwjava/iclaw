@@ -29,9 +29,34 @@ COMMANDS_HELP = [
     (".exit", "Quit"),
 ]
 
-
 CONFIG_PATH = Path.home() / ".config" / "mini-copilot" / "config.json"
-TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds (~24 minutes)
+TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds
+
+# Define the web search tool schema
+WEB_SEARCH_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "web_search",
+        "description": "Search the web for current, real-time, or recent information to help answer the user's question.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search query to look up on the web.",
+                },
+                "num_results": {
+                    "type": "integer",
+                    "description": "Number of search results to return (default 5).",
+                    "default": 5,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+}
+
+TOOLS = [WEB_SEARCH_TOOL]
 
 
 def load_github_token():
@@ -43,7 +68,6 @@ def load_github_token():
 
 def run_login():
     from datetime import datetime, timezone
-
     from mini_copilot.login import get_device_code, poll_for_access_token
 
     try:
@@ -66,7 +90,6 @@ def run_login():
 
 def copy_to_clipboard(text):
     import pyperclip
-
     pyperclip.copy(text)
 
 
@@ -128,7 +151,6 @@ def main():
             except Exception as e:
                 print(f"Error fetching models: {e}\n", file=sys.stderr)
                 continue
-            # Group by owned_by
             groups = {}
             for m in model_data:
                 owner = m.get("owned_by", "unknown")
@@ -146,9 +168,7 @@ def main():
                     model_index[idx] = mid
                     idx += 1
             try:
-                choice = input(
-                    "Select model (number or name, Enter to keep current): "
-                ).strip()
+                choice = input("Select model (number or name, Enter to keep current): ").strip()
                 if choice:
                     if choice.isdigit():
                         n = int(choice)
@@ -187,33 +207,35 @@ def main():
                 copilot_token = get_copilot_token(github_token)
                 token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
 
-            # Ask Copilot if web search is needed
-            decision_messages = [
-                {
-                    "role": "user",
-                    "content": (
-                        f"Does answering this question require a web search for current, "
-                        f"real-time, or recent information you may not know? "
-                        f"Reply with only YES or NO.\n\nQuestion: {user_input}"
-                    ),
-                }
-            ]
-            decision = (
-                chat(decision_messages, copilot_token, current_model).strip().upper()
-            )
+            messages.append({"role": "user", "content": user_input})
+            
+            # First turn: get potential tool call
+            response_message = chat(messages, copilot_token, current_model, tools=TOOLS)
+            
+            # Handle tool calls in a loop (for potentially multiple tools)
+            while response_message.get("tool_calls"):
+                messages.append(response_message)
+                for tool_call in response_message["tool_calls"]:
+                    function_name = tool_call["function"]["name"]
+                    function_args = json.loads(tool_call["function"]["arguments"])
+                    
+                    if function_name == "web_search":
+                        search_query = function_args.get("query")
+                        num_results = function_args.get("num_results", 5)
+                        
+                        search_context = web_search(search_query, num_results=num_results)
+                        
+                        messages.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": function_name,
+                            "content": search_context,
+                        })
+                
+                # Turn after tool results: get the model's response based on context
+                response_message = chat(messages, copilot_token, current_model, tools=TOOLS)
 
-            content = user_input
-            if decision.startswith("YES"):
-                search_context = web_search(user_input)
-                content = (
-                    f"{user_input}\n\n"
-                    f"--- Web search results ---\n{search_context}\n"
-                    f"--- End of web search results ---\n\n"
-                    f"Please answer based on the above web search results."
-                )
-
-            messages.append({"role": "user", "content": content})
-            reply = chat(messages, copilot_token, current_model)
+            reply = response_message["content"]
             messages.append({"role": "assistant", "content": reply})
             last_reply = reply
 
