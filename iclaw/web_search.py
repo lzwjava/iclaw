@@ -206,12 +206,12 @@ def search_tavily(query, num_results=5):
     """Using Tavily API for search"""
     import os
 
-    from tavily import TavilyClient
-
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
         print("[web search] Error: TAVILY_API_KEY not set.")
         return []
+
+    from tavily import TavilyClient
 
     try:
         client = TavilyClient(api_key=api_key)
