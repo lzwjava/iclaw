@@ -1,12 +1,10 @@
-import requests
-import sys
-import argparse
-import subprocess
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import parse_qs, urlparse
+
+import requests
 from bs4 import BeautifulSoup
 from readability import Document
-from urllib.parse import urlparse, parse_qs
 
 # Configuration
 DEFAULT_PROXY = {"http": "http://127.0.0.1:7890", "https": "http://127.0.0.1:7890"}
@@ -30,7 +28,7 @@ def search_ddg(query, num_results=10):
         res = requests.get(url, headers=HEADERS, proxies=PROXY, timeout=10)
         res.raise_for_status()
     except Exception as e:
-        print(f"Error searching DDG: {e}")
+        print(f"[web search] Error searching DDG: {e}")
         return []
 
     soup = BeautifulSoup(res.text, "html.parser")
@@ -94,8 +92,7 @@ def extract_text_from_url(url):
                     text = summary_soup.get_text(separator=" ", strip=True)
                     if len(text) > 100:  # Ensure it extracted meaningful content
                         return text
-            except Exception as e:
-                # Silently fail readability and try fallback
+            except Exception:
                 pass
 
             # Fallback to generic heuristics
@@ -111,9 +108,9 @@ def extract_text_from_url(url):
 
         if content_blocks:
             full_text = "\n\n".join(content_blocks)
-            return full_text[:4000]  # Truncate for LLM window
+            return full_text[:3000]  # Truncate for LLM window
 
-        return soup.get_text(separator=" ", strip=True)[:4000]
+        return soup.get_text(separator=" ", strip=True)[:3000]
     except Exception as e:
         return f"Error fetching {url}: {e}"
 
@@ -133,9 +130,10 @@ def format_llm_output(results):
     return "\n\n".join(blocks)
 
 
-def web_search(query, n=5):
+def web_search(query, num_results=5):
     """Function to be called as a tool."""
-    search_results = search_ddg(query, num_results=n)
+    print(f"[web search] Searching: {query}")
+    search_results = search_ddg(query, num_results=num_results)
     processed_results = []
 
     if not search_results:
@@ -151,24 +149,26 @@ def web_search(query, n=5):
             try:
                 content = future.result()
                 processed_results.append({**info, "content": content})
+                print(f"[web search] Fetched: {info['url']}")
             except Exception:
                 processed_results.append({**info, "content": "Failed to extract content."})
 
     # Sort results to match original search order
-    url_to_order = {res["url"]: i for i, res in enumerate(search_results)}
-    processed_results.sort(key=lambda x: url_to_order.get(x["url"], 999))
+    url_order = {res["url"]: i for i, res in enumerate(search_results)}
+    processed_results.sort(key=lambda x: url_order.get(x["url"], 999))
 
     return format_llm_output(processed_results)
 
 
 if __name__ == "__main__":
+    import argparse
     parser = argparse.ArgumentParser(
         description="Optimized DDG Search & Extract for LLMs."
     )
     parser.add_argument("query", help="The search query")
     parser.add_argument(
-        "-n", type=int, default=5, help="Number of results (default: 5)"
+        "-n", "--num_results", type=int, default=5, help="Number of results (default: 5)"
     )
     args = parser.parse_args()
 
-    print(web_search(args.query, n=args.n))
+    print(web_search(args.query, num_results=args.num_results))
