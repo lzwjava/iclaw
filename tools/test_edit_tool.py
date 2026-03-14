@@ -1,6 +1,6 @@
 import unittest
 import os
-from edit_tool import EditTool
+from tools.edit_tool import EditTool
 
 
 class TestEditTool(unittest.TestCase):
