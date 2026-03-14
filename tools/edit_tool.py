@@ -2,11 +2,11 @@ import os
 import re
 
 
-class PatchTool:
+class EditTool:
     @staticmethod
-    def apply_patch(file_path: str, patch_content: str) -> str:
+    def edit(file_path: str, edit_content: str) -> str:
         """
-        Applies a unified diff patch to a file.
+        Applies a unified diff edit to a file.
         Returns the new content of the file.
         """
         if not os.path.exists(file_path):
@@ -15,13 +15,13 @@ class PatchTool:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.readlines()
 
-        patch_lines = patch_content.splitlines(keepends=True)
+        edit_lines = edit_content.splitlines(keepends=True)
         hunk_re = re.compile(r"^@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@")
 
         hunks = []
         current_hunk = None
 
-        for line in patch_lines:
+        for line in edit_lines:
             if line.startswith("---") or line.startswith("+++"):
                 continue
 
@@ -58,7 +58,7 @@ class PatchTool:
                 elif h_line.startswith("-"):
                     pass
 
-            # Pad result_lines if the patch references lines beyond current EOF
+            # Pad result_lines if the edit references lines beyond current EOF
             while len(result_lines) < start_in_file:
                 result_lines.append("\n")
 
@@ -72,10 +72,10 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) == 3:
-        path, patch_file = sys.argv[1], sys.argv[2]
-        with open(patch_file, "r") as pf:
-            patch = pf.read()
-        new_text = PatchTool.apply_patch(path, patch)
+        path, edit_file = sys.argv[1], sys.argv[2]
+        with open(edit_file, "r") as pf:
+            edit = pf.read()
+        new_text = EditTool.edit(path, edit)
         with open(path, "w") as f:
             f.write(new_text)
-        print(f"Applied patch to {path}")
+        print(f"Applied edit to {path}")

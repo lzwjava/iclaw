@@ -1,9 +1,9 @@
 import unittest
 import os
-from tools.patch_tool import PatchTool
+from edit_tool import EditTool
 
 
-class TestPatchTool(unittest.TestCase):
+class TestEditTool(unittest.TestCase):
     def setUp(self):
         self.test_file = "test_file.txt"
         with open(self.test_file, "w") as f:
@@ -14,19 +14,19 @@ class TestPatchTool(unittest.TestCase):
             os.remove(self.test_file)
 
     def test_basic_replace(self):
-        patch = """--- test_file.txt
+        edit = """--- test_file.txt
 +++ test_file.txt
 @@ -2,1 +2,1 @@
 -Line 2
 +Line Two Modified
 """
-        new_content = PatchTool.apply_patch(self.test_file, patch)
+        new_content = EditTool.edit(self.test_file, edit)
         self.assertIn("Line Two Modified\n", new_content)
         self.assertNotIn("Line 2\n", new_content)
         self.assertEqual(new_content.splitlines()[1], "Line Two Modified")
 
     def test_multi_line_hunk(self):
-        patch = """--- test_file.txt
+        edit = """--- test_file.txt
 +++ test_file.txt
 @@ -3,2 +3,3 @@
 -Line 3
@@ -35,7 +35,7 @@ class TestPatchTool(unittest.TestCase):
 +Line Three.Five
 +Line Four
 """
-        new_content = PatchTool.apply_patch(self.test_file, patch)
+        new_content = EditTool.edit(self.test_file, edit)
         lines = new_content.splitlines()
         self.assertEqual(lines[2], "Line Three")
         self.assertEqual(lines[3], "Line Three.Five")
@@ -43,7 +43,7 @@ class TestPatchTool(unittest.TestCase):
         self.assertEqual(len(lines), 6)
 
     def test_multiple_hunks(self):
-        patch = """--- test_file.txt
+        edit = """--- test_file.txt
 +++ test_file.txt
 @@ -1,1 +1,1 @@
 -Line 1
@@ -52,7 +52,7 @@ class TestPatchTool(unittest.TestCase):
 -Line 5
 +Last Line
 """
-        new_content = PatchTool.apply_patch(self.test_file, patch)
+        new_content = EditTool.edit(self.test_file, edit)
         lines = new_content.splitlines()
         self.assertEqual(lines[0], "First Line")
         self.assertEqual(lines[-1], "Last Line")
