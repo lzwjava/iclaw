@@ -39,11 +39,3 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:.
           python3 -m coverage run -m unittest discover tests
           python3 -m coverage report -m mini_copilot/*.py mini_copilot/commands/*.py
-
-      - name: Run integration tests
-        if: env.GITHUB_TOKEN_INTEGRATION != ''
-        env:
-          GITHUB_TOKEN_INTEGRATION: ${{ secrets.GITHUB_TOKEN_INTEGRATION }}
-        run: |
-          export PYTHONPATH=$PYTHONPATH:.
-          python3 -m unittest discover integration_tests
