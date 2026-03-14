@@ -1,24 +1,24 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from mini_copilot.commands import model, search_provider, auth, utils
+from leanclaw.commands import model, search_provider, auth, utils
 
 class TestCommands(unittest.TestCase):
-    @patch("mini_copilot.commands.model.get_models")
-    @patch("mini_copilot.commands.model.input", return_value="1")
+    @patch("leanclaw.commands.model.get_models")
+    @patch("leanclaw.commands.model.input", return_value="1")
     def test_handle_model_command(self, mock_input, mock_models):
         mock_models.return_value = [{"id": "m1", "owned_by": "o1"}]
         with patch("sys.stdout"):
             res = model.handle_model_command("t", "curr")
         self.assertEqual(res, "m1")
 
-    @patch("mini_copilot.commands.search_provider.input", return_value="1")
+    @patch("leanclaw.commands.search_provider.input", return_value="1")
     def test_handle_search_provider_command(self, mock_input):
         with patch("sys.stdout"):
             res = search_provider.handle_search_provider_command("duckduckgo")
         self.assertEqual(res, "duckduckgo")
 
-    @patch("mini_copilot.commands.auth.get_device_code")
-    @patch("mini_copilot.commands.auth.poll_for_access_token")
+    @patch("leanclaw.commands.auth.get_device_code")
+    @patch("leanclaw.commands.auth.poll_for_access_token")
     def test_handle_login_command(self, mock_poll, mock_device):
         mock_device.return_value = {"device_code": "dc"}
         mock_poll.return_value = "at"
@@ -27,7 +27,7 @@ class TestCommands(unittest.TestCase):
             res = auth.handle_login_command(mock_path, 1)
         self.assertEqual(res, "at")
 
-    @patch("mini_copilot.commands.utils.sys")
+    @patch("leanclaw.commands.utils.sys")
     def test_handle_copy_command(self, mock_sys):
         # We'll patch pyperclip inside sys.modules because it's imported inside the function
         mock_py = MagicMock()

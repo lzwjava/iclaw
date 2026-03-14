@@ -11,9 +11,9 @@ def run_integration_test():
     env = os.environ.copy()
     env["PYTHONPATH"] = os.getcwd() + ":" + env.get("PYTHONPATH", "")
 
-    # Start the mini-copilot process
+    # Start the leanclaw process
     process = subprocess.Popen(
-        [sys.executable, "-m", "mini_copilot.main"],
+        [sys.executable, "-m", "leanclaw.main"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,  # Combine stdout and stderr

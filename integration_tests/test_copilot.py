@@ -1,7 +1,7 @@
 import unittest
 import os
 import requests
-from mini_copilot import github_api
+from leanclaw import github_api
 
 class TestCopilotIntegration(unittest.TestCase):
     def setUp(self):

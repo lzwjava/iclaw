@@ -18,14 +18,14 @@ try:
 except ImportError:
     pass
 
-from mini_copilot.github_api import chat, get_copilot_token
-from mini_copilot.web_search import web_search
-from mini_copilot.exec_tool import exec_command as exec
+from leanclaw.github_api import chat, get_copilot_token
+from leanclaw.web_search import web_search
+from leanclaw.exec_tool import exec_command as exec
 from tools.edit_tool import EditTool
-from mini_copilot.commands.auth import handle_login_command
-from mini_copilot.commands.model import handle_model_command
-from mini_copilot.commands.search_provider import handle_search_provider_command
-from mini_copilot.commands.utils import handle_copy_command
+from leanclaw.commands.auth import handle_login_command
+from leanclaw.commands.model import handle_model_command
+from leanclaw.commands.search_provider import handle_search_provider_command
+from leanclaw.commands.utils import handle_copy_command
 
 COMMANDS_HELP = [
     ("/login", "Authenticate with GitHub"),
@@ -36,7 +36,7 @@ COMMANDS_HELP = [
     (".exit", "Quit"),
 ]
 
-CONFIG_PATH = Path.home() / ".config" / "mini-copilot" / "config.json"
+CONFIG_PATH = Path.home() / ".config" / "leanclaw" / "config.json"
 TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds
 
 WEB_SEARCH_TOOL = {

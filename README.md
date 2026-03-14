@@ -1,4 +1,4 @@
-# mini-copilot
+# leanclaw
 
 An interactive terminal REPL for chatting with GitHub Copilot, built with Python.
 
@@ -14,8 +14,8 @@ An interactive terminal REPL for chatting with GitHub Copilot, built with Python
 ## Installation
 
 ```bash
-git clone https://github.com/lzwjava/mini-copilot
-cd mini-copilot
+git clone https://github.com/lzwjava/leanclaw
+cd leanclaw
 pip install -e .
 ```
 
@@ -23,13 +23,13 @@ pip install -e .
 
 1. **Authenticate with GitHub** (once):
    ```bash
-   mini-copilot-login
+   leanclaw-login
    ```
-   This runs the GitHub device authorization flow and saves your token to `~/.config/mini-copilot/config.json`.
+   This runs the GitHub device authorization flow and saves your token to `~/.config/leanclaw/config.json`.
 
 2. **Start the REPL**:
    ```bash
-   mini-copilot
+   leanclaw
    ```
 
 ### CLI Commands
@@ -58,7 +58,7 @@ python3 -m coverage report -m
 
 ### Project Structure
 ```
-mini_copilot/
+leanclaw/
 ├── commands/     # Modular CLI command handlers
 ├── main.py       # Core REPL loop and tool definitions
 ├── github_api.py # GitHub/Copilot API communication

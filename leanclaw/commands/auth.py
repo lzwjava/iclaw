@@ -1,7 +1,7 @@
 import json
 import sys
 from datetime import datetime, timezone
-from mini_copilot.login import get_device_code, poll_for_access_token
+from leanclaw.login import get_device_code, poll_for_access_token
 
 def handle_login_command(config_path, token_refresh_interval):
     try:

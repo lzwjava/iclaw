@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from mini_copilot import web_search
+from leanclaw import web_search
 
 
 class TestWebSearch(unittest.TestCase):
-    @patch("mini_copilot.web_search.requests.get")
+    @patch("leanclaw.web_search.requests.get")
     def test_search_ddg(self, mock_get):
         # Match the .result__title .result__a selector
         mock_get.return_value = MagicMock(
@@ -15,7 +15,7 @@ class TestWebSearch(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["url"], "u")
 
-    @patch("mini_copilot.web_search.requests.get")
+    @patch("leanclaw.web_search.requests.get")
     def test_search_startpage(self, mock_get):
         # Match the .result and a.result-link, .wgl-title selectors
         mock_get.return_value = MagicMock(
@@ -27,7 +27,7 @@ class TestWebSearch(unittest.TestCase):
         self.assertEqual(results[0]["url"], "http://u")
         self.assertEqual(results[0]["title"], "T")
 
-    @patch("mini_copilot.web_search.requests.Session")
+    @patch("leanclaw.web_search.requests.Session")
     def test_search_bing(self, mock_session):
         # Match the li.b_algo and h2 a selectors
         mock_s = MagicMock()
@@ -41,7 +41,7 @@ class TestWebSearch(unittest.TestCase):
         self.assertEqual(results[0]["url"], "http://u")
         self.assertEqual(results[0]["title"], "T")
 
-    @patch("mini_copilot.web_search.requests.Session")
+    @patch("leanclaw.web_search.requests.Session")
     def test_extract_text(self, mock_session):
         mock_s = MagicMock()
         mock_session.return_value = mock_s

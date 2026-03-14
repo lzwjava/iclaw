@@ -1,5 +1,5 @@
 import sys
-from mini_copilot.github_api import get_models
+from leanclaw.github_api import get_models
 
 def handle_model_command(copilot_token, current_model):
     try:

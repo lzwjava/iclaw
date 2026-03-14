@@ -16,9 +16,9 @@ def run_integration_test():
     with open(test_filename, "w") as f:
         f.write("Line 1\nLine 2\nLine 3\n")
 
-    # Start the mini-copilot process
+    # Start the leanclaw process
     process = subprocess.Popen(
-        [sys.executable, "-m", "mini_copilot.main"],
+        [sys.executable, "-m", "leanclaw.main"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

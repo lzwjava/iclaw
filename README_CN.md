@@ -1,4 +1,4 @@
-# mini-copilot (中文说明)
+# leanclaw (中文说明)
 
 这是一个基于 Python 的交互式终端 REPL，用于在终端中与 GitHub Copilot 进行对话。
 
@@ -14,8 +14,8 @@
 ## 安装步骤
 
 ```bash
-git clone https://github.com/lzwjava/mini-copilot
-cd mini-copilot
+git clone https://github.com/lzwjava/leanclaw
+cd leanclaw
 pip install -e .
 ```
 
@@ -23,13 +23,13 @@ pip install -e .
 
 1. **GitHub 认证（仅需一次）**：
    ```bash
-   mini-copilot-login
+   leanclaw-login
    ```
-   这将启动 GitHub 设备授权流程，并将您的令牌保存到 `~/.config/mini-copilot/config.json`。
+   这将启动 GitHub 设备授权流程，并将您的令牌保存到 `~/.config/leanclaw/config.json`。
 
 2. **启动 REPL**：
    ```bash
-   mini-copilot
+   leanclaw
    ```
 
 ### 终端命令
@@ -56,7 +56,7 @@ python3 -m coverage report -m
 
 ### 项目结构
 ```
-mini_copilot/
+leanclaw/
 ├── commands/     # 模块化 CLI 命令处理器
 ├── main.py       # 核心 REPL 循环和工具定义
 ├── github_api.py # GitHub/Copilot API 通信

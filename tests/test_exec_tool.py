@@ -1,5 +1,5 @@
 import unittest
-from mini_copilot.exec_tool import exec_command
+from leanclaw.exec_tool import exec_command
 
 
 class TestExecTool(unittest.TestCase):
