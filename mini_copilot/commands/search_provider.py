@@ -1,4 +1,4 @@
-SEARCH_PROVIDERS = ["duckduckgo", "startpage"]
+SEARCH_PROVIDERS = ["duckduckgo", "startpage", "bing"]
 
 
 def handle_search_provider_command(search_provider):
