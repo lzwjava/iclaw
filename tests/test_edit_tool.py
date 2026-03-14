@@ -1,6 +1,6 @@
 import unittest
 import os
-from tools.edit_tool import EditTool
+from iclaw.tools.edit_tool import EditTool
 
 
 class TestEditTool(unittest.TestCase):
