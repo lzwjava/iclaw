@@ -7,7 +7,14 @@ from pathlib import Path
 try:
     import readline
 
-    COMMANDS = ["/login", "/help", "/copy", "/model", "/search_provider", ".exit"]
+    COMMANDS = [
+        "/model_provider",
+        "/model",
+        "/search_provider",
+        "/copy",
+        "/help",
+        ".exit",
+    ]
 
     def completer(text, state):
         matches = [c for c in COMMANDS if c.startswith(text)]
@@ -22,17 +29,16 @@ from iclaw.github_api import chat, get_copilot_token
 from iclaw.web_search import web_search
 from iclaw.exec_tool import exec_command as exec
 from iclaw.tools.edit_tool import EditTool
-from iclaw.commands.auth import handle_login_command
-from iclaw.commands.model import handle_model_command
+from iclaw.commands.model import handle_model_command, handle_model_provider_command
 from iclaw.commands.search_provider import handle_search_provider_command
 from iclaw.commands.utils import handle_copy_command
 
 COMMANDS_HELP = [
-    ("/login", "Authenticate with GitHub"),
-    ("/help", "Show available commands"),
-    ("/copy", "Copy last Copilot response to clipboard"),
-    ("/model", "Select the model to use"),
+    ("/model_provider", "Select and authenticate with the model provider"),
+    ("/model", "Select specific model from your provider"),
     ("/search_provider", "Select the web search provider"),
+    ("/copy", "Copy last Copilot response to clipboard"),
+    ("/help", "Show available commands"),
     (".exit", "Quit"),
 ]
 
@@ -107,8 +113,11 @@ TOOLS = [WEB_SEARCH_TOOL, EXEC_COMMAND_TOOL, EDIT_TOOL]
 def load_github_token():
     if not CONFIG_PATH.exists():
         return None
-    config = json.loads(CONFIG_PATH.read_text())
-    return config.get("github_token")
+    try:
+        config = json.loads(CONFIG_PATH.read_text())
+        return config.get("github_token")
+    except json.JSONDecodeError:
+        return None
 
 
 def main():
@@ -117,6 +126,7 @@ def main():
     token_expiry = 0
     last_reply = None
     search_provider = "duckduckgo"
+    model_provider = "copilot"
     current_model = "gpt-5.2"
 
     if github_token:
@@ -127,10 +137,10 @@ def main():
         except Exception as e:
             print(f"Warning: {e}", file=sys.stderr)
     else:
-        print("No token found. Type /login to authenticate.\n")
+        print("No token found. Type /model_provider to authenticate.\n")
 
     messages = []
-    print("GitHub Copilot CLI ready. Available commands:")
+    print("iclaw CLI ready. Available commands:")
     for cmd, desc in COMMANDS_HELP:
         print(f"  {cmd:<20} {desc}")
     print()
@@ -156,29 +166,27 @@ def main():
         if user_input == "/copy":
             handle_copy_command(last_reply)
             continue
+        if user_input == "/model_provider":
+            p, t = handle_model_provider_command(CONFIG_PATH, model_provider)
+            if t:
+                model_provider = p
+                copilot_token = t
+                github_token = load_github_token()
+                token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
+            continue
         if user_input == "/model":
             current_model = handle_model_command(copilot_token, current_model)
             continue
         if user_input == "/search_provider":
             search_provider = handle_search_provider_command(search_provider)
             continue
-        if user_input == "/login":
-            github_token = handle_login_command(CONFIG_PATH, TOKEN_REFRESH_INTERVAL)
-            if github_token:
-                try:
-                    copilot_token = get_copilot_token(github_token)
-                    token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
-                    print("Connected to GitHub Copilot.\n")
-                except Exception as e:
-                    print(f"Error: {e}", file=sys.stderr)
-            continue
 
         if not copilot_token:
-            print("Not authenticated. Type /login first.", file=sys.stderr)
+            print("Not authenticated. Type /model_provider first.", file=sys.stderr)
             continue
 
         try:
-            if time.monotonic() >= token_expiry:
+            if time.monotonic() >= token_expiry and github_token:
                 copilot_token = get_copilot_token(github_token)
                 token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
 
