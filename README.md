@@ -22,8 +22,9 @@ pip install -e .
 ## Usage
 
 1. **Authenticate with GitHub** (once):
-   ```bash
-   iclaw-login
+   Start `iclaw`, then run:
+   ```
+   /login
    ```
    This runs the GitHub device authorization flow and saves your token to `~/.config/iclaw/config.json`.
 
