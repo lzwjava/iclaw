@@ -1,5 +1,7 @@
 # iclaw
 
+[中文](./README_CN.md)
+
 An interactive terminal REPL for chatting with GitHub Copilot, built with Python.
 
 ## Features
@@ -44,8 +46,6 @@ pip install -e .
 The agent is equipped with a `web_search` tool. When you ask about recent events or real-time data, the model will autonomously invoke the tool, fetch content, and provide an answer based on live results.
 
 ---
-
-[中文说明 (README_CN.md)](README_CN.md)
 
 ## Development
 
