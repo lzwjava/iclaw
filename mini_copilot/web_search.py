@@ -1,11 +1,14 @@
+import requests
+import sys
+import argparse
+import subprocess
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from urllib.parse import parse_qs, urlparse
-
-import requests
 from bs4 import BeautifulSoup
 from readability import Document
+from urllib.parse import urlparse, parse_qs
 
+# Configuration
 DEFAULT_PROXY = {"http": "http://127.0.0.1:7890", "https": "http://127.0.0.1:7890"}
 PROXY = {
     "http": os.environ.get("HTTP_PROXY", DEFAULT_PROXY["http"]),
@@ -20,26 +23,32 @@ HEADERS = {
 
 
 def search_ddg(query, num_results=10):
+    """Using DuckDuckGo's html version which is easier to scrape"""
     url = f"https://html.duckduckgo.com/html/?q={query}"
+
     try:
         res = requests.get(url, headers=HEADERS, proxies=PROXY, timeout=10)
         res.raise_for_status()
     except Exception as e:
-        print(f"[web search] DDG error: {e}")
+        print(f"Error searching DDG: {e}")
         return []
 
     soup = BeautifulSoup(res.text, "html.parser")
     results = []
+
     for item in soup.select(".result__title .result__a"):
         href = item["href"]
         if href.startswith("//"):
             href = "https:" + href
+
         if "duckduckgo.com/l/?uddg=" in href:
             parsed = urlparse(href)
-            params = parse_qs(parsed.query)
-            if "uddg" in params:
-                href = params["uddg"][0]
+            query_params = parse_qs(parsed.query)
+            if "uddg" in query_params:
+                href = query_params["uddg"][0]
+
         results.append({"title": item.text.strip(), "url": href})
+
     return results[:num_results]
 
 
@@ -48,13 +57,21 @@ def extract_text_from_url(url):
         session = requests.Session()
         res = session.get(url, headers=HEADERS, proxies=PROXY, timeout=15)
         res.encoding = res.apparent_encoding
+
         if res.status_code != 200:
-            return f"Error: status {res.status_code}"
+            return f"Error: Received status code {res.status_code}"
 
         soup = BeautifulSoup(res.text, "html.parser")
-        for el in soup(["script", "style", "header", "footer", "nav", "aside", "form"]):
-            el.decompose()
 
+        # Remove irrelevant elements
+        for element in soup(
+            ["script", "style", "header", "footer", "nav", "aside", "form"]
+        ):
+            element.decompose()
+
+        content_blocks = []
+
+        # Site-specific selectors
         if "zhihu.com" in url:
             targets = soup.select(
                 ".QuestionHeader-title, .RichContent-inner, .Post-RichTextContainer"
@@ -68,61 +85,90 @@ def extract_text_from_url(url):
         elif "github.com" in url:
             targets = soup.select(".repository-content, article.markdown-body")
         else:
+            # Generic extraction using readability-lxml
             try:
                 doc = Document(res.text)
                 summary_html = doc.summary()
                 if summary_html:
-                    text = BeautifulSoup(summary_html, "html.parser").get_text(
-                        separator=" ", strip=True
-                    )
-                    if len(text) > 100:
+                    summary_soup = BeautifulSoup(summary_html, "html.parser")
+                    text = summary_soup.get_text(separator=" ", strip=True)
+                    if len(text) > 100:  # Ensure it extracted meaningful content
                         return text
-            except Exception:
+            except Exception as e:
+                # Silently fail readability and try fallback
                 pass
+
+            # Fallback to generic heuristics
             targets = soup.select("article, main, .main-content, #content, .content")
             if not targets:
                 targets = [soup.find("body")]
 
-        blocks = [t.get_text(separator=" ", strip=True) for t in targets if t]
-        return "\n\n".join(b for b in blocks if b) or soup.get_text(
-            separator=" ", strip=True
-        )
+        for t in targets:
+            if t:
+                text = t.get_text(separator=" ", strip=True)
+                if text:
+                    content_blocks.append(text)
+
+        if content_blocks:
+            full_text = "\n\n".join(content_blocks)
+            return full_text[:4000]  # Truncate for LLM window
+
+        return soup.get_text(separator=" ", strip=True)[:4000]
     except Exception as e:
         return f"Error fetching {url}: {e}"
 
 
-def web_search(query, num_results=5):
-    """Search DDG and extract content. Returns formatted string for LLM context."""
-    print(f"[web search] Searching: {query}")
-    search_results = search_ddg(query, num_results=num_results)
-    if not search_results:
-        return "No web search results found."
+def format_llm_output(results):
+    """Formats findings into a structured, LLM-friendly Markdown format."""
+    blocks = []
+    for i, res in enumerate(results):
+        block = (
+            f"### Source {i + 1}\n"
+            f"**Title:** {res['title']}\n"
+            f"**URL:** {res['url']}\n\n"
+            f"**Content:**\n{res.get('content', 'No content extracted.')}\n"
+            f"{'-' * 40}"
+        )
+        blocks.append(block)
+    return "\n\n".join(blocks)
 
-    processed = []
+
+def web_search(query, n=5):
+    """Function to be called as a tool."""
+    search_results = search_ddg(query, num_results=n)
+    processed_results = []
+
+    if not search_results:
+        return "No results found."
+
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_info = {
             executor.submit(extract_text_from_url, r["url"]): r for r in search_results
         }
+
         for future in as_completed(future_to_info):
             info = future_to_info[future]
             try:
                 content = future.result()
-            except Exception as e:
-                content = f"Error: {e}"
-            processed.append({**info, "content": content})
-            print(f"[web search] Fetched: {info['url']}")
+                processed_results.append({**info, "content": content})
+            except Exception:
+                processed_results.append({**info, "content": "Failed to extract content."})
 
-    url_order = {r["url"]: i for i, r in enumerate(search_results)}
-    processed.sort(key=lambda x: url_order.get(x["url"], 999))
+    # Sort results to match original search order
+    url_to_order = {res["url"]: i for i, res in enumerate(search_results)}
+    processed_results.sort(key=lambda x: url_to_order.get(x["url"], 999))
 
-    blocks = []
-    for i, r in enumerate(processed):
-        content = r.get("content", "").strip()
-        # Truncate very long content to avoid flooding context
-        if len(content) > 2000:
-            content = content[:2000] + "...[truncated]"
-        blocks.append(
-            f"### Source {i + 1}\n**Title:** {r['title']}\n**URL:** {r['url']}\n\n**Content:**\n{content}\n"
-            + "-" * 40
-        )
-    return "\n\n".join(blocks)
+    return format_llm_output(processed_results)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Optimized DDG Search & Extract for LLMs."
+    )
+    parser.add_argument("query", help="The search query")
+    parser.add_argument(
+        "-n", type=int, default=5, help="Number of results (default: 5)"
+    )
+    args = parser.parse_args()
+
+    print(web_search(args.query, n=args.n))

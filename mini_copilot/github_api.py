@@ -36,14 +36,18 @@ def get_models(copilot_token):
     return resp.json().get("data", [])
 
 
-def chat(messages, copilot_token, model="gpt-4o"):
+def chat(messages, copilot_token, model="gpt-4o", tools=None):
+    payload = {"model": model, "messages": messages, "stream": False}
+    if tools:
+        payload["tools"] = tools
+        
     resp = requests.post(
         "https://api.githubcopilot.com/chat/completions",
         headers={"Authorization": f"Bearer {copilot_token}", **COPILOT_HEADERS},
-        json={"model": model, "messages": messages, "stream": False},
+        json=payload,
     )
     if not resp.ok:
         raise RuntimeError(
             f"Chat API error: {resp.status_code} {resp.reason}\n{resp.text}"
         )
-    return resp.json()["choices"][0]["message"]["content"]
+    return resp.json()["choices"][0]["message"]
