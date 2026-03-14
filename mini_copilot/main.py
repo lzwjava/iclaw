@@ -31,6 +31,8 @@ COMMANDS_HELP = [
     (".exit", "Quit"),
 ]
 
+SEARCH_PROVIDERS = ["duckduckgo"]
+
 CONFIG_PATH = Path.home() / ".config" / "mini-copilot" / "config.json"
 TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds
 
@@ -38,12 +40,19 @@ WEB_SEARCH_TOOL = {
     "type": "function",
     "function": {
         "name": "web_search",
-        "description": "Search the web for current, real-time, or recent information.",
+        "description": "Search the web for current, real-time, or recent information to help answer the user's question.",
         "parameters": {
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "The search query."},
-                "num_results": {"type": "integer", "description": "Results count.", "default": 20},
+                "query": {
+                    "type": "string",
+                    "description": "The search query to look up on the web.",
+                },
+                "num_results": {
+                    "type": "integer",
+                    "description": "Number of search results to return (default 20).",
+                    "default": 20,
+                },
             },
             "required": ["query"],
         },
@@ -71,13 +80,15 @@ def main():
             token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
         except Exception as e:
             print(f"Warning: {e}", file=sys.stderr)
+    else:
+        print("No token found. Type /login to authenticate.\n")
 
+    messages = []
     print("GitHub Copilot CLI ready. Available commands:")
     for cmd, desc in COMMANDS_HELP:
         print(f"  {cmd:<20} {desc}")
     print()
 
-    messages = []
     while True:
         try:
             user_input = input("> ").strip()
@@ -87,7 +98,8 @@ def main():
         if not user_input: continue
         if user_input in ("/", "/help"):
             print("\nAvailable commands:")
-            for cmd, desc in COMMANDS_HELP: print(f"  {cmd:<20} {desc}")
+            for cmd, desc in COMMANDS_HELP:
+                print(f"  {cmd:<20} {desc}")
             print(); continue
         if user_input == ".exit": print("Goodbye!"); break
         if user_input == "/copy":
@@ -120,11 +132,21 @@ def main():
             while response_message.get("tool_calls"):
                 messages.append(response_message)
                 for tool_call in response_message["tool_calls"]:
-                    fn = tool_call["function"]
-                    if fn["name"] == "web_search":
-                        args = json.loads(fn["arguments"])
-                        res = web_search(args.get("query"), num_results=args.get("num_results", 20))
-                        messages.append({"tool_call_id": tool_call["id"], "role": "tool", "name": fn["name"], "content": res})
+                    function_name = tool_call["function"]["name"]
+                    function_args = json.loads(tool_call["function"]["arguments"])
+                    
+                    if function_name == "web_search":
+                        search_query = function_args.get("query")
+                        num_results = function_args.get("num_results", 20)
+                        
+                        search_context = web_search(search_query, num_results=num_results)
+                        
+                        messages.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": function_name,
+                            "content": search_context,
+                        })
                 response_message = chat(messages, copilot_token, current_model, tools=TOOLS)
 
             reply = response_message["content"]
