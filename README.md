@@ -4,10 +4,12 @@ An interactive terminal REPL for chatting with GitHub Copilot, built with Python
 
 ## Features
 
-- Multi-turn conversations with GitHub Copilot in your terminal
-- GitHub OAuth device flow authentication
-- Automatic Copilot token refresh during session
-- GPT-4o model
+- **Multi-turn conversations** with GitHub Copilot in your terminal.
+- **Native Tool Calling**: Automatically triggers web searches when real-time information is needed.
+- **Customizable**: Select search providers and models during the session.
+- **GitHub OAuth device flow** authentication.
+- **Automatic token refresh** during sessions.
+- **Modern Default**: Uses GPT-5.2 as the default model.
 
 ## Installation
 
@@ -19,40 +21,50 @@ pip install -e .
 
 ## Usage
 
-1. Authenticate with GitHub (once):
+1. **Authenticate with GitHub** (once):
    ```bash
    mini-copilot-login
    ```
    This runs the GitHub device authorization flow and saves your token to `~/.config/mini-copilot/config.json`.
 
-2. Start the REPL:
+2. **Start the REPL**:
    ```bash
    mini-copilot
    ```
 
-```
-> What is a closure in Python?
+### CLI Commands
+- `/login`: Authenticate with GitHub.
+- `/model`: View and switch between available models.
+- `/search_provider`: View and switch web search providers (default: DuckDuckGo).
+- `/copy`: Copy the last response to your clipboard.
+- `/help`: Show available commands.
+- `.exit`: Quit the REPL.
 
-GitHub Copilot: A closure is ...
-
-> Can you give me an example?
-
-GitHub Copilot: Sure! Here's an example ...
-```
-
-Type `.exit` or press `Ctrl+C` to quit.
+## Web Search (Native Tool Calling)
+The agent is equipped with a `web_search` tool. When you ask about recent events or real-time data, the model will autonomously invoke the tool, fetch content, and provide an answer based on live results.
 
 ---
 
 [中文说明 (README_CN.md)](README_CN.md)
 
-## Project Structure
+## Development
 
+### Running Tests
+We use `unittest` and `coverage` for testing.
+```bash
+python3 -m coverage run -m unittest discover tests
+python3 -m coverage report -m
+```
+
+### Project Structure
 ```
 mini_copilot/
-├── main.py       # Interactive REPL
-└── login.py      # CLI login utility
+├── commands/     # Modular CLI command handlers
+├── main.py       # Core REPL loop and tool definitions
+├── github_api.py # GitHub/Copilot API communication
+├── web_search.py # DuckDuckGo search and extraction logic
+└── login.py      # OAuth device flow logic
 
-pyproject.toml    # Package metadata and entry points
+tests/            # Unit tests
+integration_tests/# Network-dependent integration tests
 ```
-
