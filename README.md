@@ -1,4 +1,4 @@
-# leanclaw
+# iclaw
 
 An interactive terminal REPL for chatting with GitHub Copilot, built with Python.
 
@@ -14,8 +14,8 @@ An interactive terminal REPL for chatting with GitHub Copilot, built with Python
 ## Installation
 
 ```bash
-git clone https://github.com/lzwjava/leanclaw
-cd leanclaw
+git clone https://github.com/lzwjava/iclaw
+cd iclaw
 pip install -e .
 ```
 
@@ -23,13 +23,13 @@ pip install -e .
 
 1. **Authenticate with GitHub** (once):
    ```bash
-   leanclaw-login
+   iclaw-login
    ```
-   This runs the GitHub device authorization flow and saves your token to `~/.config/leanclaw/config.json`.
+   This runs the GitHub device authorization flow and saves your token to `~/.config/iclaw/config.json`.
 
 2. **Start the REPL**:
    ```bash
-   leanclaw
+   iclaw
    ```
 
 ### CLI Commands
@@ -58,7 +58,7 @@ python3 -m coverage report -m
 
 ### Project Structure
 ```
-leanclaw/
+iclaw/
 ├── commands/     # Modular CLI command handlers
 ├── main.py       # Core REPL loop and tool definitions
 ├── github_api.py # GitHub/Copilot API communication

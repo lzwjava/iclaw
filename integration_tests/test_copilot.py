@@ -1,7 +1,7 @@
 import unittest
 import os
 import requests
-from leanclaw import github_api
+from iclaw import github_api
 
 class TestCopilotIntegration(unittest.TestCase):
     def setUp(self):

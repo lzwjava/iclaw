@@ -16,9 +16,9 @@ def run_integration_test():
     with open(test_filename, "w") as f:
         f.write("Line 1\nLine 2\nLine 3\n")
 
-    # Start the leanclaw process
+    # Start the iclaw process
     process = subprocess.Popen(
-        [sys.executable, "-m", "leanclaw.main"],
+        [sys.executable, "-m", "iclaw.main"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

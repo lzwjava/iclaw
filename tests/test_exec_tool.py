@@ -1,5 +1,5 @@
 import unittest
-from leanclaw.exec_tool import exec_command
+from iclaw.exec_tool import exec_command
 
 
 class TestExecTool(unittest.TestCase):

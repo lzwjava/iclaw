@@ -18,14 +18,14 @@ try:
 except ImportError:
     pass
 
-from leanclaw.github_api import chat, get_copilot_token
-from leanclaw.web_search import web_search
-from leanclaw.exec_tool import exec_command as exec
+from iclaw.github_api import chat, get_copilot_token
+from iclaw.web_search import web_search
+from iclaw.exec_tool import exec_command as exec
 from tools.edit_tool import EditTool
-from leanclaw.commands.auth import handle_login_command
-from leanclaw.commands.model import handle_model_command
-from leanclaw.commands.search_provider import handle_search_provider_command
-from leanclaw.commands.utils import handle_copy_command
+from iclaw.commands.auth import handle_login_command
+from iclaw.commands.model import handle_model_command
+from iclaw.commands.search_provider import handle_search_provider_command
+from iclaw.commands.utils import handle_copy_command
 
 COMMANDS_HELP = [
     ("/login", "Authenticate with GitHub"),
@@ -36,7 +36,7 @@ COMMANDS_HELP = [
     (".exit", "Quit"),
 ]
 
-CONFIG_PATH = Path.home() / ".config" / "leanclaw" / "config.json"
+CONFIG_PATH = Path.home() / ".config" / "iclaw" / "config.json"
 TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds
 
 WEB_SEARCH_TOOL = {

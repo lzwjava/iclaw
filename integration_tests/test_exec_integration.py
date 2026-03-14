@@ -11,9 +11,9 @@ def run_integration_test():
     env = os.environ.copy()
     env["PYTHONPATH"] = os.getcwd() + ":" + env.get("PYTHONPATH", "")
 
-    # Start the leanclaw process
+    # Start the iclaw process
     process = subprocess.Popen(
-        [sys.executable, "-m", "leanclaw.main"],
+        [sys.executable, "-m", "iclaw.main"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,  # Combine stdout and stderr

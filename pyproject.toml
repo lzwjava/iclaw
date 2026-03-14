@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "leanclaw"
+name = "iclaw"
 version = "0.1.0"
 description = "Interactive CLI REPL for chatting with GitHub Copilot"
 readme = "README.md"
@@ -11,4 +11,4 @@ requires-python = ">=3.8"
 dependencies = ["requests>=2.32.0", "pyperclip>=1.8.0", "beautifulsoup4>=4.12.0", "readability-lxml>=0.8.1", "lxml>=5.0.0"]
 
 [project.scripts]
-leanclaw = "leanclaw.main:main"
+iclaw = "iclaw.main:main"
