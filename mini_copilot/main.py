@@ -48,7 +48,7 @@ WEB_SEARCH_TOOL = {
                 "num_results": {
                     "type": "integer",
                     "description": "Number of search results to return (default 5).",
-                    "default": 5,
+                    "default": 20,
                 },
             },
             "required": ["query"],
