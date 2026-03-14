@@ -87,6 +87,41 @@ def search_startpage(query, num_results=20):
     return results[:num_results]
 
 
+def search_bing(query, num_results=20):
+    """Using Bing's search which is a good alternative"""
+    # Use international URL and parameters to bypass country redirection
+    url = f"https://www.bing.com/search?q={query}&setmkt=en-US&setlang=en-US&cc=US"
+
+    try:
+        # Use a session to maintain cookies
+        session = requests.Session()
+        # Set cookies to force US market and English language
+        session.cookies.set("SRCHHPGUSR", "SRCHLANG=EN&WLS=2", domain=".bing.com")
+        session.cookies.set("_EDGE_S", "mkt=en-us", domain=".bing.com")
+
+        res = session.get(url, headers=HEADERS, proxies=PROXY, timeout=10)
+        res.raise_for_status()
+    except Exception as e:
+        print(f"[web search] Error searching Bing: {e}")
+        return []
+
+    soup = BeautifulSoup(res.text, "html.parser")
+    results = []
+
+    for item in soup.select("li.b_algo"):
+        title_link = item.select_one("h2 a")
+        if not title_link:
+            continue
+
+        href = title_link["href"]
+        if href.startswith("//"):
+            href = "https:" + href
+
+        results.append({"title": title_link.text.strip(), "url": href})
+
+    return results[:num_results]
+
+
 def extract_text_from_url(url):
     try:
         session = requests.Session()
@@ -173,6 +208,8 @@ def web_search(query, num_results=5, provider="duckduckgo"):
 
     if provider == "startpage":
         search_results = search_startpage(query, num_results=num_results)
+    elif provider == "bing":
+        search_results = search_bing(query, num_results=num_results)
     else:
         search_results = search_ddg(query, num_results=num_results)
 
