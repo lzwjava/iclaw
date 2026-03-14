@@ -1,0 +1,46 @@
+name: Integration Test
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'mini_copilot/**'
+      - 'integration_tests/**'
+  pull_request:
+    paths:
+      - 'mini_copilot/**'
+      - 'integration_tests/**'
+
+concurrency:
+  group: 'integration-test'
+  cancel-in-progress: false
+
+jobs:
+  integration_job:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13.2
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13.2"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install requests beautifulsoup4 readability-lxml lxml pyperclip
+
+      - name: Run integration tests
+        env:
+          GITHUB_TOKEN_INTEGRATION: ${{ secrets.GITHUB_TOKEN_INTEGRATION }}
+        run: |
+          if [ -z "$GITHUB_TOKEN_INTEGRATION" ]; then
+            echo "Skipping integration tests: GITHUB_TOKEN_INTEGRATION secret not set."
+            exit 0
+          fi
+          export PYTHONPATH=$PYTHONPATH:.
+          python3 -m unittest discover integration_tests
