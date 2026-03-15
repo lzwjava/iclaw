@@ -34,18 +34,18 @@ class TestMain(unittest.TestCase):
             main.main()
 
     def test_load_github_token(self):
-        with patch("iclaw.main.CONFIG_PATH") as mp:
+        with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = True
             mp.read_text.return_value = '{"github_token": "t"}'
             self.assertEqual(main.load_github_token(), "t")
 
     def test_load_github_token_no_config(self):
-        with patch("iclaw.main.CONFIG_PATH") as mp:
+        with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = False
             self.assertIsNone(main.load_github_token())
 
     def test_load_github_token_invalid_json(self):
-        with patch("iclaw.main.CONFIG_PATH") as mp:
+        with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = True
             mp.read_text.return_value = "not json"
             self.assertIsNone(main.load_github_token())

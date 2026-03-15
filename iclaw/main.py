@@ -1,89 +1,21 @@
 #!/usr/bin/env python3
 import json
-import os
-import re
-import subprocess
 import sys
 import time
-from pathlib import Path
 
 from prompt_toolkit import PromptSession
-from prompt_toolkit.completion import Completer, Completion
 
-from iclaw.github_api import chat, get_copilot_token
-from iclaw.web_search import web_search
-from iclaw.exec_tool import exec_command as exec
-from iclaw.tools.edit_tool import EditTool
+from iclaw.at_mention import resolve_at_mentions
 from iclaw.commands.model import handle_model_command, handle_model_provider_command
 from iclaw.commands.search_provider import handle_search_provider_command
 from iclaw.commands.utils import handle_copy_command
-
-
-def _get_git_files():
-    """Return files from git ls-files, natively respecting .gitignore."""
-    try:
-        result = subprocess.run(
-            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0:
-            return result.stdout.splitlines()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    return []
-
-
-COMMANDS = [
-    "/model_provider",
-    "/model",
-    "/search_provider",
-    "/copy",
-    "/help",
-    ".exit",
-]
-
-
-class IclawCompleter(Completer):
-    """Handles both / command completion and @ file mention completion."""
-
-    def get_completions(self, document, complete_event):
-        text = document.text_before_cursor
-
-        # @ file mention: find the last @ not preceded by a non-space char
-        at_pos = text.rfind("@")
-        if at_pos != -1:
-            prefix = text[at_pos + 1 :]
-            if " " not in prefix:
-                all_files = _get_git_files()
-                matches = [f for f in all_files if prefix.lower() in f.lower()]
-                count = 0
-                for path in sorted(matches):
-                    if count >= 20:
-                        break
-                    count += 1
-                    meta = "dir" if os.path.isdir(path) else "file"
-                    yield Completion(
-                        path,
-                        start_position=-len(prefix),
-                        display=path,
-                        display_meta=meta,
-                    )
-                return
-
-        # / command completion at start of input
-        stripped = text.lstrip()
-        if stripped.startswith("/") or stripped == ".":
-            word = stripped
-            for cmd in COMMANDS:
-                if cmd.startswith(word):
-                    yield Completion(
-                        cmd,
-                        start_position=-len(stripped),
-                        display=cmd,
-                    )
-
+from iclaw.completer import IclawCompleter
+from iclaw.config import CONFIG_PATH, TOKEN_REFRESH_INTERVAL, load_github_token
+from iclaw.exec_tool import exec_command as exec
+from iclaw.github_api import chat, get_copilot_token
+from iclaw.tools.defs import TOOLS
+from iclaw.tools.edit_tool import EditTool
+from iclaw.web_search import web_search
 
 COMMANDS_HELP = [
     ("/model_provider", "Select and authenticate with the model provider"),
@@ -93,101 +25,6 @@ COMMANDS_HELP = [
     ("/help", "Show available commands"),
     (".exit", "Quit"),
 ]
-
-CONFIG_PATH = Path.home() / ".config" / "iclaw" / "config.json"
-TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds
-
-WEB_SEARCH_TOOL = {
-    "type": "function",
-    "function": {
-        "name": "web_search",
-        "description": "Search the web for current, real-time, or recent information to help answer the user's question.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "The search query to look up on the web.",
-                },
-                "num_results": {
-                    "type": "integer",
-                    "description": "Number of search results to return (default 20).",
-                    "default": 20,
-                },
-            },
-            "required": ["query"],
-        },
-    },
-}
-
-EXEC_COMMAND_TOOL = {
-    "type": "function",
-    "function": {
-        "name": "exec",
-        "description": "Execute a shell command on the local system and return the output.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "command": {
-                    "type": "string",
-                    "description": "The shell command to execute.",
-                },
-            },
-            "required": ["command"],
-        },
-    },
-}
-
-EDIT_TOOL = {
-    "type": "function",
-    "function": {
-        "name": "edit",
-        "description": "Apply a unified diff edit to a file on the local system.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "file_path": {
-                    "type": "string",
-                    "description": "The path to the file to edit.",
-                },
-                "edit_content": {
-                    "type": "string",
-                    "description": "The unified diff content to apply.",
-                },
-            },
-            "required": ["file_path", "edit_content"],
-        },
-    },
-}
-TOOLS = [WEB_SEARCH_TOOL, EXEC_COMMAND_TOOL, EDIT_TOOL]
-
-
-def load_github_token():
-    if not CONFIG_PATH.exists():
-        return None
-    try:
-        config = json.loads(CONFIG_PATH.read_text())
-        return config.get("github_token")
-    except json.JSONDecodeError:
-        return None
-
-
-def resolve_at_mentions(text):
-    """Extract @file references, return augmented text with file contents prepended."""
-    mentions = re.findall(r"@(\S+)", text)
-    if not mentions:
-        return text
-    parts = []
-    for path in mentions:
-        if os.path.isfile(path):
-            try:
-                contents = Path(path).read_text()
-                parts.append(f'<file path="{path}">\n{contents}\n</file>')
-            except OSError:
-                pass
-    if parts:
-        return "\n".join(parts) + "\n\n" + text
-    return text
 
 
 def main():
@@ -274,15 +111,11 @@ def main():
                     function_args = json.loads(tool_call["function"]["arguments"])
 
                     if function_name == "web_search":
-                        search_query = function_args.get("query")
-                        num_results = function_args.get("num_results", 20)
-
                         search_context = web_search(
-                            search_query,
-                            num_results=num_results,
+                            function_args.get("query"),
+                            num_results=function_args.get("num_results", 20),
                             provider=search_provider,
                         )
-
                         messages.append(
                             {
                                 "tool_call_id": tool_call["id"],
@@ -293,9 +126,7 @@ def main():
                         )
 
                     if function_name == "exec":
-                        command = function_args.get("command")
-                        output = exec(command)
-
+                        output = exec(function_args.get("command"))
                         messages.append(
                             {
                                 "tool_call_id": tool_call["id"],
@@ -307,12 +138,11 @@ def main():
 
                     if function_name == "edit":
                         file_path = function_args.get("file_path")
-                        edit_content = function_args.get("edit_content")
-
-                        result = EditTool.edit(file_path, edit_content)
+                        result = EditTool.edit(
+                            file_path, function_args.get("edit_content")
+                        )
                         with open(file_path, "w") as f:
                             f.write(result)
-
                         messages.append(
                             {
                                 "tool_call_id": tool_call["id"],
@@ -321,6 +151,7 @@ def main():
                                 "content": f"Successfully edited {file_path}",
                             }
                         )
+
                 response_message = chat(
                     messages, copilot_token, current_model, tools=TOOLS
                 )

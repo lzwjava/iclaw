@@ -9,7 +9,8 @@ from unittest.mock import patch
 from prompt_toolkit.completion import CompleteEvent
 from prompt_toolkit.document import Document
 
-from iclaw.main import IclawCompleter, resolve_at_mentions
+from iclaw.at_mention import resolve_at_mentions
+from iclaw.completer import IclawCompleter
 
 
 class TestResolveAtMentions(unittest.TestCase):
@@ -57,7 +58,9 @@ class TestResolveAtMentions(unittest.TestCase):
 
     def test_unreadable_file_skipped(self):
         text = f"explain @{self.file1}"
-        with patch("iclaw.main.Path.read_text", side_effect=OSError("perm denied")):
+        with patch(
+            "iclaw.at_mention.Path.read_text", side_effect=OSError("perm denied")
+        ):
             result = resolve_at_mentions(text)
         self.assertEqual(result, text)
 
@@ -78,7 +81,7 @@ class TestIclawCompleter(unittest.TestCase):
         os.makedirs("subdir", exist_ok=True)
         Path("subdir/gamma.py").write_text("")
         # Patch _get_git_files so tests don't require a real git repo
-        self.patcher = patch("iclaw.main._get_git_files", return_value=TEST_FILES)
+        self.patcher = patch("iclaw.completer._get_git_files", return_value=TEST_FILES)
         self.patcher.start()
 
     def tearDown(self):
@@ -129,7 +132,7 @@ class TestIclawCompleter(unittest.TestCase):
 
     def test_at_limits_to_20_results(self):
         many_files = [f"zfile{i:02d}.py" for i in range(25)]
-        with patch("iclaw.main._get_git_files", return_value=many_files):
+        with patch("iclaw.completer._get_git_files", return_value=many_files):
             completions = self._completions("@zfile")
         self.assertLessEqual(len(completions), 20)
 
@@ -137,7 +140,7 @@ class TestIclawCompleter(unittest.TestCase):
         # git ls-files naturally excludes ignored files; simulate this by
         # returning only non-ignored files from _get_git_files.
         clean_files = ["visible.py", "README.md"]
-        with patch("iclaw.main._get_git_files", return_value=clean_files):
+        with patch("iclaw.completer._get_git_files", return_value=clean_files):
             completions = self._completions("@")
         paths = [c.text for c in completions]
         self.assertNotIn("visible.pyc", paths)
