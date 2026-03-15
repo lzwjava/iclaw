@@ -1,29 +1,14 @@
 #!/usr/bin/env python3
+import glob
 import json
+import os
+import re
 import sys
 import time
 from pathlib import Path
 
-try:
-    import readline
-
-    COMMANDS = [
-        "/model_provider",
-        "/model",
-        "/search_provider",
-        "/copy",
-        "/help",
-        ".exit",
-    ]
-
-    def completer(text, state):
-        matches = [c for c in COMMANDS if c.startswith(text)]
-        return matches[state] if state < len(matches) else None
-
-    readline.set_completer(completer)
-    readline.parse_and_bind("tab: complete")
-except ImportError:
-    pass
+from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import Completer, Completion
 
 from iclaw.github_api import chat, get_copilot_token
 from iclaw.web_search import web_search
@@ -32,6 +17,58 @@ from iclaw.tools.edit_tool import EditTool
 from iclaw.commands.model import handle_model_command, handle_model_provider_command
 from iclaw.commands.search_provider import handle_search_provider_command
 from iclaw.commands.utils import handle_copy_command
+
+COMMANDS = [
+    "/model_provider",
+    "/model",
+    "/search_provider",
+    "/copy",
+    "/help",
+    ".exit",
+]
+
+
+class IclawCompleter(Completer):
+    """Handles both / command completion and @ file mention completion."""
+
+    def get_completions(self, document, complete_event):
+        text = document.text_before_cursor
+
+        # @ file mention: find the last @ not preceded by a non-space char
+        at_pos = text.rfind("@")
+        if at_pos != -1:
+            prefix = text[at_pos + 1 :]
+            if " " not in prefix:
+                pattern = f"{prefix}*"
+                matches = glob.glob(pattern) + glob.glob(
+                    os.path.join("**", pattern), recursive=True
+                )
+                seen = set()
+                for path in sorted(matches)[:20]:
+                    if path in seen:
+                        continue
+                    seen.add(path)
+                    meta = "dir" if os.path.isdir(path) else "file"
+                    yield Completion(
+                        path,
+                        start_position=-len(prefix),
+                        display=path,
+                        display_meta=meta,
+                    )
+                return
+
+        # / command completion at start of input
+        stripped = text.lstrip()
+        if stripped.startswith("/") or stripped == ".":
+            word = stripped
+            for cmd in COMMANDS:
+                if cmd.startswith(word):
+                    yield Completion(
+                        cmd,
+                        start_position=-len(stripped),
+                        display=cmd,
+                    )
+
 
 COMMANDS_HELP = [
     ("/model_provider", "Select and authenticate with the model provider"),
@@ -120,6 +157,24 @@ def load_github_token():
         return None
 
 
+def resolve_at_mentions(text):
+    """Extract @file references, return augmented text with file contents prepended."""
+    mentions = re.findall(r"@(\S+)", text)
+    if not mentions:
+        return text
+    parts = []
+    for path in mentions:
+        if os.path.isfile(path):
+            try:
+                contents = Path(path).read_text()
+                parts.append(f'<file path="{path}">\n{contents}\n</file>')
+            except OSError:
+                pass
+    if parts:
+        return "\n".join(parts) + "\n\n" + text
+    return text
+
+
 def main():
     github_token = load_github_token()
     copilot_token = None
@@ -145,9 +200,11 @@ def main():
         print(f"  {cmd:<20} {desc}")
     print()
 
+    session = PromptSession(completer=IclawCompleter(), complete_while_typing=True)
+
     while True:
         try:
-            user_input = input("> ").strip()
+            user_input = session.prompt("> ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nGoodbye!")
             break
@@ -190,7 +247,9 @@ def main():
                 copilot_token = get_copilot_token(github_token)
                 token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
 
-            messages.append({"role": "user", "content": user_input})
+            messages.append(
+                {"role": "user", "content": resolve_at_mentions(user_input)}
+            )
             response_message = chat(messages, copilot_token, current_model, tools=TOOLS)
 
             while response_message.get("tool_calls"):
