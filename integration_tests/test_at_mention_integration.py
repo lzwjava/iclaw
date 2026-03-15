@@ -1,5 +1,10 @@
+"""Integration test for @ file mention (resolve_at_mentions).
+
+Runs resolve_at_mentions in a subprocess to verify end-to-end file injection
+without requiring a TTY or live API credentials.
+"""
+
 import subprocess
-import time
 import sys
 import os
 import tempfile
@@ -8,92 +13,142 @@ import tempfile
 def run_integration_test():
     print("Starting Integration Test for '@' file mention...")
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = os.getcwd() + ":" + env.get("PYTHONPATH", "")
-
-    # Create a temp file with distinctive content
     tmpdir = tempfile.mkdtemp()
     test_filename = os.path.join(tmpdir, "secret_phrase.txt")
     secret_content = "XYZZY_UNIQUE_SECRET_42"
     with open(test_filename, "w") as f:
         f.write(f"The magic word is: {secret_content}\n")
 
-    process = subprocess.Popen(
-        [sys.executable, "-m", "iclaw.main"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        cwd=os.getcwd(),
-        env=env,
-    )
+    script = f"""
+import sys
+sys.path.insert(0, {repr(os.getcwd())})
+from iclaw.main import resolve_at_mentions
+
+text = "What is written in @{test_filename}"
+result = resolve_at_mentions(text)
+print(result)
+"""
 
     try:
-        # 1. Wait for prompt
-        print("Waiting for prompt...")
-        output = ""
-        start_time = time.time()
-        while time.time() - start_time < 30:
-            char = process.stdout.read(1)
-            if not char:
-                break
-            output += char
-            if "> " in output:
-                print("Prompt detected.")
-                break
-
-        if "> " not in output:
-            print(f"Timed out waiting for prompt. Last output: {output}")
-            return False
-
-        # 2. Send message with @ mention of the test file
-        print(f"Sending message with @{test_filename}...")
-        request = (
-            f"What is written in @{test_filename} ? Just repeat the exact content.\n"
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
-        process.stdin.write(request)
-        process.stdin.flush()
 
-        # 3. Wait for the LLM response containing the secret phrase
-        print("Monitoring for response containing file content...")
-        found_content = False
-        start_time = time.time()
-        output = ""
-        while time.time() - start_time < 60:
-            char = process.stdout.read(1)
-            if not char:
-                break
-            output += char
-            sys.stdout.write(char)
-            sys.stdout.flush()
-
-            if secret_content in output:
-                found_content = True
-
-            # Wait for next prompt to confirm response is complete
-            if found_content and output.endswith("> "):
-                break
-
-        if found_content:
-            print(f"\nLLM response contained file content ({secret_content}).")
-            print("\nIntegration Test PASSED!")
-            return True
-        else:
-            print("\nIntegration Test FAILED (file content not found in response).")
-            print(f"Output was:\n{output}")
+        if proc.returncode != 0:
+            print(f"Subprocess failed:\n{proc.stderr}")
             return False
+
+        output = proc.stdout
+        print(f"Output:\n{output}")
+
+        # Verify file content was injected
+        if secret_content not in output:
+            print("FAILED: secret content not found in output.")
+            return False
+
+        if f'<file path="{test_filename}">' not in output:
+            print("FAILED: <file> XML tag not found in output.")
+            return False
+
+        if "What is written in" not in output:
+            print("FAILED: original message not preserved in output.")
+            return False
+
+        print("Integration Test PASSED!")
+        return True
 
     finally:
-        process.terminate()
         if os.path.exists(test_filename):
             os.remove(test_filename)
         if os.path.exists(tmpdir):
             os.rmdir(tmpdir)
 
 
+def run_nonexistent_file_test():
+    print("\nStarting test: nonexistent file mention returns original text...")
+
+    script = f"""
+import sys
+sys.path.insert(0, {repr(os.getcwd())})
+from iclaw.main import resolve_at_mentions
+
+text = "look at @/nonexistent/path/file.txt"
+result = resolve_at_mentions(text)
+assert result == text, f"Expected original text, got: {{result!r}}"
+print("OK")
+"""
+
+    proc = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if proc.returncode == 0 and "OK" in proc.stdout:
+        print("Nonexistent file test PASSED!")
+        return True
+    else:
+        print(f"FAILED:\n{proc.stderr or proc.stdout}")
+        return False
+
+
+def run_multiple_files_test():
+    print("\nStarting test: multiple @ mentions inject all files...")
+
+    tmpdir = tempfile.mkdtemp()
+    file1 = os.path.join(tmpdir, "foo.txt")
+    file2 = os.path.join(tmpdir, "bar.txt")
+    with open(file1, "w") as f:
+        f.write("content of foo")
+    with open(file2, "w") as f:
+        f.write("content of bar")
+
+    script = f"""
+import sys
+sys.path.insert(0, {repr(os.getcwd())})
+from iclaw.main import resolve_at_mentions
+
+text = "compare @{file1} and @{file2}"
+result = resolve_at_mentions(text)
+assert "content of foo" in result, "foo content missing"
+assert "content of bar" in result, "bar content missing"
+assert text in result, "original message missing"
+print("OK")
+"""
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if proc.returncode == 0 and "OK" in proc.stdout:
+            print("Multiple files test PASSED!")
+            return True
+        else:
+            print(f"FAILED:\n{proc.stderr or proc.stdout}")
+            return False
+    finally:
+        for f in (file1, file2):
+            if os.path.exists(f):
+                os.remove(f)
+        if os.path.exists(tmpdir):
+            os.rmdir(tmpdir)
+
+
 if __name__ == "__main__":
-    if run_integration_test():
+    results = [
+        run_integration_test(),
+        run_nonexistent_file_test(),
+        run_multiple_files_test(),
+    ]
+    if all(results):
+        print("\nAll integration tests PASSED!")
         sys.exit(0)
     else:
+        print("\nSome integration tests FAILED.")
         sys.exit(1)
