@@ -1,4 +1,11 @@
+import os
+
 import requests
+
+GITHUB_API_BASE = os.environ.get("ICLAW_GITHUB_API_BASE", "https://api.github.com")
+COPILOT_API_BASE = os.environ.get(
+    "ICLAW_COPILOT_API_BASE", "https://api.githubcopilot.com"
+)
 
 COPILOT_HEADERS = {
     "Content-Type": "application/json",
@@ -11,7 +18,7 @@ COPILOT_HEADERS = {
 
 def get_copilot_token(github_token):
     resp = requests.get(
-        "https://api.github.com/copilot_internal/v2/token",
+        f"{GITHUB_API_BASE}/copilot_internal/v2/token",
         headers={
             "Authorization": f"Bearer {github_token}",
             "Editor-Version": "vscode/1.85.0",
@@ -28,7 +35,7 @@ def get_copilot_token(github_token):
 
 def get_models(copilot_token):
     resp = requests.get(
-        "https://api.githubcopilot.com/models",
+        f"{COPILOT_API_BASE}/models",
         headers={"Authorization": f"Bearer {copilot_token}", **COPILOT_HEADERS},
     )
     if not resp.ok:
@@ -40,9 +47,9 @@ def chat(messages, copilot_token, model="gpt-4o", tools=None):
     payload = {"model": model, "messages": messages, "stream": False}
     if tools:
         payload["tools"] = tools
-        
+
     resp = requests.post(
-        "https://api.githubcopilot.com/chat/completions",
+        f"{COPILOT_API_BASE}/chat/completions",
         headers={"Authorization": f"Bearer {copilot_token}", **COPILOT_HEADERS},
         json=payload,
     )

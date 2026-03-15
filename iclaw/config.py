@@ -1,7 +1,9 @@
 import json
+import os
 from pathlib import Path
 
-CONFIG_PATH = Path.home() / ".config" / "iclaw" / "config.json"
+_default_config = Path.home() / ".config" / "iclaw" / "config.json"
+CONFIG_PATH = Path(os.environ.get("ICLAW_CONFIG_PATH", str(_default_config)))
 TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds
 
 
