@@ -8,6 +8,7 @@ COMMANDS = [
     "/model",
     "/search_provider",
     "/copy",
+    "/status",
     "/help",
     ".exit",
 ]

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import sys
 import time
 
@@ -10,7 +11,13 @@ from iclaw.commands.model import handle_model_command, handle_model_provider_com
 from iclaw.commands.search_provider import handle_search_provider_command
 from iclaw.commands.utils import handle_copy_command
 from iclaw.completer import IclawCompleter
-from iclaw.config import CONFIG_PATH, TOKEN_REFRESH_INTERVAL, load_github_token
+from iclaw.config import (
+    CONFIG_PATH,
+    TOKEN_REFRESH_INTERVAL,
+    load_github_token,
+    load_session_settings,
+    save_session_settings,
+)
 from iclaw.exec_tool import exec_command as exec
 from iclaw.github_api import chat, get_copilot_token
 from iclaw.tools.defs import TOOLS
@@ -22,6 +29,7 @@ COMMANDS_HELP = [
     ("/model", "Select specific model from your provider"),
     ("/search_provider", "Select the web search provider"),
     ("/copy", "Copy last Copilot response to clipboard"),
+    ("/status", "Show current settings"),
     ("/help", "Show available commands"),
     (".exit", "Quit"),
 ]
@@ -32,9 +40,10 @@ def main():
     copilot_token = None
     token_expiry = 0
     last_reply = None
-    search_provider = "duckduckgo"
-    model_provider = "copilot"
-    current_model = "gpt-5.2"
+    settings = load_session_settings()
+    model_provider = settings["model_provider"]
+    current_model = settings["current_model"]
+    search_provider = settings["search_provider"]
 
     if github_token:
         print("Connecting to GitHub Copilot...")
@@ -82,12 +91,22 @@ def main():
                 copilot_token = t
                 github_token = load_github_token()
                 token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
+                save_session_settings(model_provider, current_model, search_provider)
             continue
         if user_input == "/model":
             current_model = handle_model_command(copilot_token, current_model)
+            save_session_settings(model_provider, current_model, search_provider)
             continue
         if user_input == "/search_provider":
             search_provider = handle_search_provider_command(search_provider)
+            save_session_settings(model_provider, current_model, search_provider)
+            continue
+        if user_input == "/status":
+            print(f"  model_provider:  {model_provider}")
+            print(f"  model:           {current_model}")
+            print(f"  search_provider: {search_provider}")
+            print(f"  cwd:             {os.getcwd()}")
+            print()
             continue
 
         if not copilot_token:
