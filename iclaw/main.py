@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import glob
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -17,6 +17,23 @@ from iclaw.tools.edit_tool import EditTool
 from iclaw.commands.model import handle_model_command, handle_model_provider_command
 from iclaw.commands.search_provider import handle_search_provider_command
 from iclaw.commands.utils import handle_copy_command
+
+
+def _get_git_files():
+    """Return files from git ls-files, natively respecting .gitignore."""
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.splitlines()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return []
+
 
 COMMANDS = [
     "/model_provider",
@@ -39,15 +56,13 @@ class IclawCompleter(Completer):
         if at_pos != -1:
             prefix = text[at_pos + 1 :]
             if " " not in prefix:
-                pattern = f"{prefix}*"
-                matches = glob.glob(pattern) + glob.glob(
-                    os.path.join("**", pattern), recursive=True
-                )
-                seen = set()
-                for path in sorted(matches)[:20]:
-                    if path in seen:
-                        continue
-                    seen.add(path)
+                all_files = _get_git_files()
+                matches = [f for f in all_files if prefix.lower() in f.lower()]
+                count = 0
+                for path in sorted(matches):
+                    if count >= 20:
+                        break
+                    count += 1
                     meta = "dir" if os.path.isdir(path) else "file"
                     yield Completion(
                         path,

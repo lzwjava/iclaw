@@ -62,20 +62,27 @@ class TestResolveAtMentions(unittest.TestCase):
         self.assertEqual(result, text)
 
 
+TEST_FILES = ["alpha.py", "alpha_test.py", "beta.txt", "subdir/gamma.py"]
+
+
 class TestIclawCompleter(unittest.TestCase):
     def setUp(self):
         self.completer = IclawCompleter()
         self.tmpdir = tempfile.mkdtemp()
         self.orig_cwd = os.getcwd()
         os.chdir(self.tmpdir)
-        # Create test files in the temp dir
+        # Create actual files so os.path.isdir/isfile work in meta checks
         Path("alpha.py").write_text("")
         Path("alpha_test.py").write_text("")
         Path("beta.txt").write_text("")
         os.makedirs("subdir", exist_ok=True)
         Path("subdir/gamma.py").write_text("")
+        # Patch _get_git_files so tests don't require a real git repo
+        self.patcher = patch("iclaw.main._get_git_files", return_value=TEST_FILES)
+        self.patcher.start()
 
     def tearDown(self):
+        self.patcher.stop()
         os.chdir(self.orig_cwd)
 
     def _completions(self, text):
@@ -121,11 +128,21 @@ class TestIclawCompleter(unittest.TestCase):
         self.assertEqual(completions, [])
 
     def test_at_limits_to_20_results(self):
-        # Create 25 files
-        for i in range(25):
-            Path(f"zfile{i:02d}.py").write_text("")
-        completions = self._completions("@zfile")
+        many_files = [f"zfile{i:02d}.py" for i in range(25)]
+        with patch("iclaw.main._get_git_files", return_value=many_files):
+            completions = self._completions("@zfile")
         self.assertLessEqual(len(completions), 20)
+
+    def test_at_excludes_gitignored_files(self):
+        # git ls-files naturally excludes ignored files; simulate this by
+        # returning only non-ignored files from _get_git_files.
+        clean_files = ["visible.py", "README.md"]
+        with patch("iclaw.main._get_git_files", return_value=clean_files):
+            completions = self._completions("@")
+        paths = [c.text for c in completions]
+        self.assertNotIn("visible.pyc", paths)
+        self.assertNotIn("__pycache__", paths)
+        self.assertIn("visible.py", paths)
 
     # --- / command completion ---
 
