@@ -17,6 +17,7 @@ A minimal [openclaw](https://github.com/lzwjava/openclaw) implementation for ent
 
 - Support the `/log` command to display and copy the logs to the clipboard.
 - Test iclaw in enterprise environments.
+- Consult with friends at large corporations to better understand enterprise environment constraints.
 
 ## Installation
 
