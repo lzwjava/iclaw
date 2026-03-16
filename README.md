@@ -13,6 +13,11 @@ A minimal [openclaw](https://github.com/lzwjava/openclaw) implementation for ent
 - **Automatic token refresh** during sessions.
 - **Modern Default**: Uses GPT-5.2 as the default model.
 
+## Todo
+
+- Support the `/log` command to display and copy the logs to the clipboard.
+- Test iclaw in enterprise environments.
+
 ## Installation
 
 ```bash
