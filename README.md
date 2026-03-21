@@ -4,6 +4,8 @@
 
 A minimal [openclaw](https://github.com/lzwjava/openclaw) implementation for enterprise-constrained environments. iclaw is a lightweight terminal REPL that provides AI-assisted coding via GitHub Copilot, designed to work where full-featured tools are blocked or restricted — no browser extensions, no IDE plugins, just a plain Python CLI.
 
+*Disclaimer: All tests with Copilot were performed using my personal subscription and personal account.*
+
 ## Features
 
 - **Multi-turn conversations** with GitHub Copilot in your terminal.
