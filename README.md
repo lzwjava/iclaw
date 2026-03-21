@@ -6,6 +6,8 @@ A minimal [openclaw](https://github.com/lzwjava/openclaw) implementation for ent
 
 *Disclaimer: All tests with Copilot were performed using my personal subscription and personal account.*
 
+![iclaw](./iclaw.jpg)
+
 ## Features
 
 - **Multi-turn conversations** with GitHub Copilot in your terminal.

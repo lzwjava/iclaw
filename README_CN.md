@@ -2,6 +2,10 @@
 
 iclaw 是 [openclaw](https://github.com/lzwjava/openclaw) 的精简实现，专为企业受限环境设计。它是一个轻量级终端 REPL，通过 GitHub Copilot 提供 AI 编程辅助，适用于浏览器扩展、IDE 插件被封锁或受限的场景——无需任何额外组件，只需一个纯 Python CLI 即可运行。
 
+*免责声明：所有 Copilot 测试均使用本人个人订阅和个人账户进行。*
+
+![iclaw](./iclaw.jpg)
+
 ## 功能特性
 
 - **多轮对话**：在终端中与 GitHub Copilot 进行持续对话。
