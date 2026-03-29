@@ -254,7 +254,7 @@ def main():
                                 "content": search_context,
                             }
                         )
-                        log.log_verbose(f"[tool] Result: {search_context}")
+                        log.log_verbose(f"[tool] Result: ({len(search_context)} chars)")
 
                     if function_name == "exec":
                         output = exec(function_args.get("command"))
@@ -266,7 +266,7 @@ def main():
                                 "content": output,
                             }
                         )
-                        log.log_verbose(f"[tool] Result: {output}")
+                        log.log_verbose(f"[tool] Result: {output[:500]}")
 
                     if function_name == "edit":
                         file_path = function_args.get("file_path")
