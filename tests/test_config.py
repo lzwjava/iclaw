@@ -38,6 +38,7 @@ class TestConfigProxySettings(unittest.TestCase):
                 search_provider="duckduckgo",
                 proxy="http://proxy:8080",
                 ca_bundle="/path/cert.pem",
+                log_level="verbose",
             )
             written = json.loads(mp.write_text.call_args[0][0])
         self.assertEqual(written["proxy"], "http://proxy:8080")
@@ -55,10 +56,25 @@ class TestConfigProxySettings(unittest.TestCase):
                 search_provider="duckduckgo",
                 proxy=None,
                 ca_bundle=None,
+                log_level="verbose",
             )
             written = json.loads(mp.write_text.call_args[0][0])
         self.assertIsNone(written["proxy"])
         self.assertIsNone(written["ca_bundle"])
+
+    def test_load_log_level_default(self):
+        with patch("iclaw.config.CONFIG_PATH") as mp:
+            mp.exists.return_value = True
+            mp.read_text.return_value = json.dumps({})
+            settings = load_session_settings()
+        self.assertEqual(settings["log_level"], "verbose")
+
+    def test_load_log_level_set(self):
+        with patch("iclaw.config.CONFIG_PATH") as mp:
+            mp.exists.return_value = True
+            mp.read_text.return_value = json.dumps({"log_level": "info"})
+            settings = load_session_settings()
+        self.assertEqual(settings["log_level"], "info")
 
 
 if __name__ == "__main__":

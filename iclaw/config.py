@@ -33,11 +33,18 @@ def load_session_settings() -> dict:
         "search_provider": config.get("search_provider", "duckduckgo"),
         "proxy": config.get("proxy"),
         "ca_bundle": config.get("ca_bundle"),
+        "log_level": config.get("log_level", "verbose"),
     }
 
 
 def save_session_settings(
-    *, model_provider, current_model, search_provider, proxy=None, ca_bundle=None
+    *,
+    model_provider,
+    current_model,
+    search_provider,
+    proxy=None,
+    ca_bundle=None,
+    log_level="verbose",
 ) -> None:
     config = _load_config()
     config["model_provider"] = model_provider
@@ -45,4 +52,5 @@ def save_session_settings(
     config["search_provider"] = search_provider
     config["proxy"] = proxy
     config["ca_bundle"] = ca_bundle
+    config["log_level"] = log_level
     _save_config(config)
