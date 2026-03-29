@@ -140,6 +140,22 @@ class TestMain(unittest.TestCase):
     @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
+    @patch("iclaw.main.chat", return_value={"content": "Today is 2026-03-30."})
+    @patch("iclaw.main.web_search", return_value="search results here")
+    @patch("iclaw.main.PromptSession")
+    def test_main_search_command(
+        self, mock_ps, mock_ws, mock_chat, mock_cp, mock_load, mock_http
+    ):
+        mock_ps.return_value = _mock_session("/search what is today", ".exit")
+        with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
+            main.main()
+        mock_ws.assert_called_once_with(
+            "what is today", num_results=5, provider="duckduckgo"
+        )
+
+    @patch("iclaw.main.http")
+    @patch("iclaw.main.load_github_token", return_value="gt")
+    @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.chat", return_value={"content": "hi"})
     @patch("iclaw.main.PromptSession")
     def test_main_chat(self, mock_ps, mock_chat, mock_cp, mock_load, mock_http):

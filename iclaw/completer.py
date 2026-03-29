@@ -6,6 +6,7 @@ from prompt_toolkit.completion import Completer, Completion
 COMMANDS = [
     "/provider_model",
     "/model",
+    "/search",
     "/provider_search",
     "/proxy",
     "/ca_bundle",

@@ -29,6 +29,7 @@ from iclaw.web_search import web_search
 COMMANDS_HELP = [
     ("/provider_model", "Select and authenticate with the model provider"),
     ("/model", "Select specific model from your provider"),
+    ("/search", "Web search (usage: /search <query>)"),
     ("/provider_search", "Select the web search provider"),
     ("/proxy", "Set HTTP/HTTPS proxy (usage: /proxy [url|off])"),
     ("/ca_bundle", "Set CA bundle for HTTPS (usage: /ca_bundle [path|off])"),
@@ -115,6 +116,32 @@ def main():
                 proxy=proxy,
                 ca_bundle=ca_bundle,
             )
+            continue
+        if user_input.startswith("/search "):
+            query = user_input.split(maxsplit=1)[1]
+            search_context = web_search(query, num_results=5, provider=search_provider)
+            if not copilot_token:
+                print(f"\n{search_context}\n")
+                continue
+            search_msg = (
+                f"Based on the following web search results for '{query}', "
+                "provide a concise and helpful answer.\n\n"
+                f"{search_context}"
+            )
+            messages.append({"role": "user", "content": search_msg})
+            try:
+                if time.monotonic() >= token_expiry and github_token:
+                    copilot_token = get_copilot_token(github_token)
+                    token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
+                response_message = chat(
+                    messages, copilot_token, current_model, tools=TOOLS
+                )
+                reply = response_message.get("content", "")
+                messages.append({"role": "assistant", "content": reply})
+                last_reply = reply
+                print(f"\n{reply}\n")
+            except Exception as e:
+                print(f"Error: {e}", file=sys.stderr)
             continue
         if user_input == "/provider_search":
             search_provider = handle_search_provider_command(search_provider)
