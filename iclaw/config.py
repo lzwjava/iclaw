@@ -31,14 +31,18 @@ def load_session_settings() -> dict:
         "model_provider": config.get("model_provider", "copilot"),
         "current_model": config.get("current_model", "gpt-5.2"),
         "search_provider": config.get("search_provider", "duckduckgo"),
+        "proxy": config.get("proxy"),
+        "ca_bundle": config.get("ca_bundle"),
     }
 
 
 def save_session_settings(
-    model_provider: str, current_model: str, search_provider: str
+    model_provider, current_model, search_provider, proxy=None, ca_bundle=None
 ) -> None:
     config = _load_config()
     config["model_provider"] = model_provider
     config["current_model"] = current_model
     config["search_provider"] = search_provider
+    config["proxy"] = proxy
+    config["ca_bundle"] = ca_bundle
     _save_config(config)
