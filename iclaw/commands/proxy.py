@@ -9,6 +9,8 @@ def handle_proxy_command(current_proxy, arg):
             print("  proxy: (not set)")
         return current_proxy
 
+    arg = arg.strip("\"'")
+
     if arg == "off":
         print("  Proxy cleared.")
         return None
