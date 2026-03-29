@@ -10,6 +10,7 @@ COMMANDS = [
     "/provider_search",
     "/proxy",
     "/ca_bundle",
+    "/log",
     "/copy",
     "/status",
     "/help",

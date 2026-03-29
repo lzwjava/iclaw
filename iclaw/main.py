@@ -7,7 +7,9 @@ import time
 from prompt_toolkit import PromptSession
 
 from iclaw import http
+from iclaw import log
 from iclaw.at_mention import resolve_at_mentions
+from iclaw.commands.log import handle_log_command
 from iclaw.commands.model import handle_model_command, handle_model_provider_command
 from iclaw.commands.proxy import handle_ca_bundle_command, handle_proxy_command
 from iclaw.commands.search_provider import handle_search_provider_command
@@ -33,6 +35,7 @@ COMMANDS_HELP = [
     ("/provider_search", "Select the web search provider"),
     ("/proxy", "Set HTTP/HTTPS proxy (usage: /proxy [url|off])"),
     ("/ca_bundle", "Set CA bundle for HTTPS (usage: /ca_bundle [path|off])"),
+    ("/log", "Set log verbosity (usage: /log [verbose|info])"),
     ("/copy", "Copy last Copilot response to clipboard"),
     ("/status", "Show current settings"),
     ("/help", "Show available commands"),
@@ -51,6 +54,10 @@ def main():
     search_provider = settings["search_provider"]
     proxy = settings["proxy"]
     ca_bundle = settings["ca_bundle"]
+    log_level = settings["log_level"]
+    log.set_level(
+        {"info": log.INFO, "verbose": log.VERBOSE}.get(log_level, log.VERBOSE)
+    )
     http.reconfigure(proxy=proxy, ca_bundle=ca_bundle)
 
     if github_token:
@@ -105,6 +112,7 @@ def main():
                     search_provider=search_provider,
                     proxy=proxy,
                     ca_bundle=ca_bundle,
+                    log_level=log_level,
                 )
             continue
         if user_input == "/model":
@@ -115,6 +123,7 @@ def main():
                 search_provider=search_provider,
                 proxy=proxy,
                 ca_bundle=ca_bundle,
+                log_level=log_level,
             )
             continue
         if user_input.startswith("/search "):
@@ -151,6 +160,7 @@ def main():
                 search_provider=search_provider,
                 proxy=proxy,
                 ca_bundle=ca_bundle,
+                log_level=log_level,
             )
             continue
         if user_input == "/proxy" or user_input.startswith("/proxy "):
@@ -164,6 +174,7 @@ def main():
                 search_provider=search_provider,
                 proxy=proxy,
                 ca_bundle=ca_bundle,
+                log_level=log_level,
             )
             continue
         if user_input == "/ca_bundle" or user_input.startswith("/ca_bundle "):
@@ -177,7 +188,23 @@ def main():
                 search_provider=search_provider,
                 proxy=proxy,
                 ca_bundle=ca_bundle,
+                log_level=log_level,
             )
+            continue
+        if user_input == "/log" or user_input.startswith("/log "):
+            parts = user_input.split(maxsplit=1)
+            arg = parts[1] if len(parts) > 1 else None
+            handle_log_command(arg)
+            if arg in ("verbose", "info"):
+                log_level = arg
+                save_session_settings(
+                    model_provider=model_provider,
+                    current_model=current_model,
+                    search_provider=search_provider,
+                    proxy=proxy,
+                    ca_bundle=ca_bundle,
+                    log_level=log_level,
+                )
             continue
         if user_input == "/status":
             print(f"  model_provider:  {model_provider}")
@@ -185,6 +212,7 @@ def main():
             print(f"  search_provider: {search_provider}")
             print(f"  proxy:           {proxy or '(not set)'}")
             print(f"  ca_bundle:       {ca_bundle or '(system default)'}")
+            print(f"  log_level:       {log_level}")
             print(f"  cwd:             {os.getcwd()}")
             print()
             continue

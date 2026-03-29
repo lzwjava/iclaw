@@ -312,6 +312,17 @@ class TestMain(unittest.TestCase):
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
+    @patch("iclaw.main.http")
+    @patch("iclaw.main.load_github_token", return_value="gt")
+    @patch("iclaw.main.get_copilot_token", return_value="ct")
+    @patch("iclaw.main.PromptSession")
+    def test_main_log(self, mock_ps, mock_cp, mock_load, mock_http):
+        mock_ps.return_value = _mock_session(
+            "/log", "/log info", "/log verbose", ".exit"
+        )
+        with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
+            main.main()
+
 
 if __name__ == "__main__":
     unittest.main()
