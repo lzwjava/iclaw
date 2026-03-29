@@ -8,6 +8,8 @@ A minimal [openclaw](https://github.com/lzwjava/openclaw) implementation for ent
 
 ![iclaw](./iclaw.jpg)
 
+![iclaw log](./iclaw_log.png)
+
 ## Features
 
 - **Multi-turn conversations** with GitHub Copilot in your terminal.
@@ -19,7 +21,6 @@ A minimal [openclaw](https://github.com/lzwjava/openclaw) implementation for ent
 
 ## Todo
 
-- Support the `/log` command to display and copy the logs to the clipboard.
 - Test iclaw in enterprise environments.
 - Consult with friends at large corporations to better understand enterprise environment constraints.
 
