@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from readability import Document
 
 from iclaw import http
+from iclaw.log import log_info, log_verbose
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -22,7 +23,7 @@ def search_ddg(query, num_results=10):
         res = http.get_session().get(url, headers=HEADERS, timeout=10)
         res.raise_for_status()
     except Exception as e:
-        print(f"[web search] Error searching DDG: {e}")
+        log_info(f"[web search] Error searching DDG: {e}")
         return []
 
     soup = BeautifulSoup(res.text, "html.parser")
@@ -57,7 +58,7 @@ def search_startpage(query, num_results=20):
         res = http.get_session().get(url, params=params, headers=HEADERS, timeout=10)
         res.raise_for_status()
     except Exception as e:
-        print(f"[web search] Error searching Startpage: {e}")
+        log_info(f"[web search] Error searching Startpage: {e}")
         return []
 
     soup = BeautifulSoup(res.text, "html.parser")
@@ -95,7 +96,7 @@ def search_bing(query, num_results=20):
         res = session.get(url, headers=HEADERS, timeout=10)
         res.raise_for_status()
     except Exception as e:
-        print(f"[web search] Error searching Bing: {e}")
+        log_info(f"[web search] Error searching Bing: {e}")
         return []
 
     soup = BeautifulSoup(res.text, "html.parser")
@@ -200,7 +201,7 @@ def search_tavily(query, num_results=5):
 
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
-        print("[web search] Error: TAVILY_API_KEY not set.")
+        log_info("[web search] Error: TAVILY_API_KEY not set.")
         return []
 
     from tavily import TavilyClient
@@ -223,13 +224,13 @@ def search_tavily(query, num_results=5):
             )
         return results
     except Exception as e:
-        print(f"[web search] Error searching Tavily: {e}")
+        log_info(f"[web search] Error searching Tavily: {e}")
         return []
 
 
 def web_search(query, num_results=5, provider="duckduckgo"):
     """Function to be called as a tool."""
-    print(f"[web search] Searching ({provider}): {query}")
+    log_verbose(f"[web search] Searching ({provider}): {query}")
 
     if provider == "tavily":
         search_results = search_tavily(query, num_results=num_results)
@@ -259,7 +260,7 @@ def web_search(query, num_results=5, provider="duckduckgo"):
             try:
                 content = future.result()
                 processed_results.append({**info, "content": content})
-                print(f"[web search] Fetched: {info['url']}")
+                log_verbose(f"[web search] Fetched: {info['url']}")
             except Exception:
                 processed_results.append(
                     {**info, "content": "Failed to extract content."}

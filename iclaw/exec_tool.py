@@ -1,9 +1,11 @@
 import subprocess
 
+from iclaw.log import log_verbose
+
 
 def exec_command(command: str) -> str:
     """Execute a shell command and return its output (stdout or stderr)."""
-    print(f"[exec] Running command: {command}")
+    log_verbose(f"[exec] Running command: {command}")
     try:
         # Run command with a 30s timeout, capturing both stdout and stderr
         result = subprocess.run(
