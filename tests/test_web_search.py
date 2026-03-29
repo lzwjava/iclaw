@@ -4,9 +4,11 @@ from iclaw import web_search
 
 
 class TestWebSearch(unittest.TestCase):
-    @patch("iclaw.web_search.requests.get")
-    def test_search_ddg(self, mock_get):
-        mock_get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_search_ddg(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             ok=True,
             text='<html><div class="result__title"><a class="result__a" href="u">T</a></div></html>',
         )
@@ -14,9 +16,11 @@ class TestWebSearch(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["url"], "u")
 
-    @patch("iclaw.web_search.requests.get")
-    def test_search_ddg_with_redirect_url(self, mock_get):
-        mock_get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_search_ddg_with_redirect_url(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             ok=True,
             text='<html><div class="result__title"><a class="result__a" href="//duckduckgo.com/l/?uddg=http%3A%2F%2Fexample.com">T</a></div></html>',
         )
@@ -24,24 +28,29 @@ class TestWebSearch(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["url"], "http://example.com")
 
-    @patch("iclaw.web_search.requests.get")
-    def test_search_ddg_double_slash_url(self, mock_get):
-        mock_get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_search_ddg_double_slash_url(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             ok=True,
             text='<html><div class="result__title"><a class="result__a" href="//example.com/page">T</a></div></html>',
         )
         results = web_search.search_ddg("q", num_results=1)
         self.assertEqual(results[0]["url"], "https://example.com/page")
 
-    @patch("iclaw.web_search.requests.get", side_effect=Exception("network error"))
-    def test_search_ddg_error(self, mock_get):
+    @patch("iclaw.web_search.http.get_session")
+    def test_search_ddg_error(self, mock_gs):
+        mock_gs.return_value.get.side_effect = Exception("network error")
         with patch("sys.stdout"):
             results = web_search.search_ddg("q")
         self.assertEqual(results, [])
 
-    @patch("iclaw.web_search.requests.get")
-    def test_search_startpage(self, mock_get):
-        mock_get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_search_startpage(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             ok=True,
             text='<html><div class="result"><a class="result-link" href="http://u"><div class="wgl-title">T</div></a></div></html>',
         )
@@ -50,14 +59,20 @@ class TestWebSearch(unittest.TestCase):
         self.assertEqual(results[0]["url"], "http://u")
         self.assertEqual(results[0]["title"], "T")
 
-    @patch("iclaw.web_search.requests.get", side_effect=Exception("err"))
-    def test_search_startpage_error(self, mock_get):
+    @patch("iclaw.web_search.http.get_session")
+    def test_search_startpage_error(self, mock_gs):
+        mock_gs.return_value.get.side_effect = Exception("err")
         with patch("sys.stdout"):
             results = web_search.search_startpage("q")
         self.assertEqual(results, [])
 
+    @patch("iclaw.web_search.http.get_session")
     @patch("iclaw.web_search.requests.Session")
-    def test_search_bing(self, mock_session):
+    def test_search_bing(self, mock_session, mock_gs):
+        mock_shared = MagicMock()
+        mock_shared.proxies = {}
+        mock_shared.verify = True
+        mock_gs.return_value = mock_shared
         mock_s = MagicMock()
         mock_session.return_value = mock_s
         mock_s.get.return_value = MagicMock(
@@ -69,8 +84,13 @@ class TestWebSearch(unittest.TestCase):
         self.assertEqual(results[0]["url"], "http://u")
         self.assertEqual(results[0]["title"], "T")
 
+    @patch("iclaw.web_search.http.get_session")
     @patch("iclaw.web_search.requests.Session")
-    def test_search_bing_double_slash(self, mock_session):
+    def test_search_bing_double_slash(self, mock_session, mock_gs):
+        mock_shared = MagicMock()
+        mock_shared.proxies = {}
+        mock_shared.verify = True
+        mock_gs.return_value = mock_shared
         mock_s = MagicMock()
         mock_session.return_value = mock_s
         mock_s.get.return_value = MagicMock(
@@ -80,8 +100,13 @@ class TestWebSearch(unittest.TestCase):
         results = web_search.search_bing("q", num_results=1)
         self.assertEqual(results[0]["url"], "https://u.com")
 
+    @patch("iclaw.web_search.http.get_session")
     @patch("iclaw.web_search.requests.Session")
-    def test_search_bing_error(self, mock_session):
+    def test_search_bing_error(self, mock_session, mock_gs):
+        mock_shared = MagicMock()
+        mock_shared.proxies = {}
+        mock_shared.verify = True
+        mock_gs.return_value = mock_shared
         mock_s = MagicMock()
         mock_session.return_value = mock_s
         mock_s.get.side_effect = Exception("err")
@@ -89,42 +114,43 @@ class TestWebSearch(unittest.TestCase):
             results = web_search.search_bing("q")
         self.assertEqual(results, [])
 
-    @patch("iclaw.web_search.requests.Session")
-    def test_extract_text(self, mock_session):
-        mock_s = MagicMock()
-        mock_session.return_value = mock_s
-        mock_s.get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_extract_text(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             ok=True,
             status_code=200,
             text='<html><div id="firstHeading">T</div></html>',
             apparent_encoding="u8",
         )
-        mock_s.get.return_value.apparent_encoding = "u8"
         self.assertIn(
             "T", web_search.extract_text_from_url("https://en.wikipedia.org/wiki/T")
         )
 
-    @patch("iclaw.web_search.requests.Session")
-    def test_extract_text_non_200(self, mock_session):
-        mock_s = MagicMock()
-        mock_session.return_value = mock_s
-        mock_s.get.return_value = MagicMock(status_code=404, apparent_encoding="utf-8")
+    @patch("iclaw.web_search.http.get_session")
+    def test_extract_text_non_200(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
+            status_code=404, apparent_encoding="utf-8"
+        )
         result = web_search.extract_text_from_url("http://example.com")
         self.assertIn("404", result)
 
-    @patch("iclaw.web_search.requests.Session")
-    def test_extract_text_exception(self, mock_session):
-        mock_s = MagicMock()
-        mock_session.return_value = mock_s
-        mock_s.get.side_effect = Exception("timeout")
+    @patch("iclaw.web_search.http.get_session")
+    def test_extract_text_exception(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.side_effect = Exception("timeout")
         result = web_search.extract_text_from_url("http://example.com")
         self.assertIn("Error", result)
 
-    @patch("iclaw.web_search.requests.Session")
-    def test_extract_text_zhihu(self, mock_session):
-        mock_s = MagicMock()
-        mock_session.return_value = mock_s
-        mock_s.get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_extract_text_zhihu(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             status_code=200,
             text='<html><body><h1 class="QuestionHeader-title">Question</h1><div class="RichContent-inner">Answer text</div></body></html>',
             apparent_encoding="utf-8",
@@ -132,11 +158,11 @@ class TestWebSearch(unittest.TestCase):
         result = web_search.extract_text_from_url("https://zhihu.com/question/123")
         self.assertIn("Question", result)
 
-    @patch("iclaw.web_search.requests.Session")
-    def test_extract_text_github(self, mock_session):
-        mock_s = MagicMock()
-        mock_session.return_value = mock_s
-        mock_s.get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_extract_text_github(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             status_code=200,
             text='<html><body><div class="repository-content">Repo content here</div></body></html>',
             apparent_encoding="utf-8",
@@ -144,11 +170,11 @@ class TestWebSearch(unittest.TestCase):
         result = web_search.extract_text_from_url("https://github.com/user/repo")
         self.assertIn("Repo content", result)
 
-    @patch("iclaw.web_search.requests.Session")
-    def test_extract_text_baidu_zhidao(self, mock_session):
-        mock_s = MagicMock()
-        mock_session.return_value = mock_s
-        mock_s.get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_extract_text_baidu_zhidao(self, mock_gs):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             status_code=200,
             text='<html><body><div class="wgt-best-content">Best answer</div></body></html>',
             apparent_encoding="utf-8",
@@ -159,11 +185,11 @@ class TestWebSearch(unittest.TestCase):
         self.assertIn("Best answer", result)
 
     @patch("iclaw.web_search.Document")
-    @patch("iclaw.web_search.requests.Session")
-    def test_extract_text_generic_readability(self, mock_session, mock_doc):
-        mock_s = MagicMock()
-        mock_session.return_value = mock_s
-        mock_s.get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_extract_text_generic_readability(self, mock_gs, mock_doc):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             status_code=200,
             text="<html><body><p>Hello world content that is long enough to pass the 100 char threshold and needs to be extracted properly by the readability library for the test to pass.</p></body></html>",
             apparent_encoding="utf-8",
@@ -173,11 +199,11 @@ class TestWebSearch(unittest.TestCase):
         self.assertIn("Hello world", result)
 
     @patch("iclaw.web_search.Document")
-    @patch("iclaw.web_search.requests.Session")
-    def test_extract_text_generic_fallback(self, mock_session, mock_doc):
-        mock_s = MagicMock()
-        mock_session.return_value = mock_s
-        mock_s.get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_extract_text_generic_fallback(self, mock_gs, mock_doc):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             status_code=200,
             text="<html><body><main>Main content</main></body></html>",
             apparent_encoding="utf-8",
@@ -187,11 +213,11 @@ class TestWebSearch(unittest.TestCase):
         self.assertIn("Main content", result)
 
     @patch("iclaw.web_search.Document")
-    @patch("iclaw.web_search.requests.Session")
-    def test_extract_text_body_fallback(self, mock_session, mock_doc):
-        mock_s = MagicMock()
-        mock_session.return_value = mock_s
-        mock_s.get.return_value = MagicMock(
+    @patch("iclaw.web_search.http.get_session")
+    def test_extract_text_body_fallback(self, mock_gs, mock_doc):
+        mock_session = MagicMock()
+        mock_gs.return_value = mock_session
+        mock_session.get.return_value = MagicMock(
             status_code=200,
             text="<html><body><p>Body text</p></body></html>",
             apparent_encoding="utf-8",

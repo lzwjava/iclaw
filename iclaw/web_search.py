@@ -1,4 +1,3 @@
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import parse_qs, urlparse
 
@@ -6,12 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 from readability import Document
 
-# Configuration
-DEFAULT_PROXY = {"http": "http://127.0.0.1:7890", "https": "http://127.0.0.1:7890"}
-PROXY = {
-    "http": os.environ.get("HTTP_PROXY", DEFAULT_PROXY["http"]),
-    "https": os.environ.get("HTTPS_PROXY", DEFAULT_PROXY["https"]),
-}
+from iclaw import http
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -25,7 +19,7 @@ def search_ddg(query, num_results=10):
     url = f"https://html.duckduckgo.com/html/?q={query}"
 
     try:
-        res = requests.get(url, headers=HEADERS, proxies=PROXY, timeout=10)
+        res = http.get_session().get(url, headers=HEADERS, timeout=10)
         res.raise_for_status()
     except Exception as e:
         print(f"[web search] Error searching DDG: {e}")
@@ -60,9 +54,7 @@ def search_startpage(query, num_results=20):
     }
 
     try:
-        res = requests.get(
-            url, params=params, headers=HEADERS, proxies=PROXY, timeout=10
-        )
+        res = http.get_session().get(url, params=params, headers=HEADERS, timeout=10)
         res.raise_for_status()
     except Exception as e:
         print(f"[web search] Error searching Startpage: {e}")
@@ -93,13 +85,14 @@ def search_bing(query, num_results=20):
     url = f"https://www.bing.com/search?q={query}&setmkt=en-US&setlang=en-US&cc=US"
 
     try:
-        # Use a session to maintain cookies
+        shared = http.get_session()
         session = requests.Session()
-        # Set cookies to force US market and English language
+        session.proxies = dict(shared.proxies)
+        session.verify = shared.verify
         session.cookies.set("SRCHHPGUSR", "SRCHLANG=EN&WLS=2", domain=".bing.com")
         session.cookies.set("_EDGE_S", "mkt=en-us", domain=".bing.com")
 
-        res = session.get(url, headers=HEADERS, proxies=PROXY, timeout=10)
+        res = session.get(url, headers=HEADERS, timeout=10)
         res.raise_for_status()
     except Exception as e:
         print(f"[web search] Error searching Bing: {e}")
@@ -124,8 +117,7 @@ def search_bing(query, num_results=20):
 
 def extract_text_from_url(url):
     try:
-        session = requests.Session()
-        res = session.get(url, headers=HEADERS, proxies=PROXY, timeout=15)
+        res = http.get_session().get(url, headers=HEADERS, timeout=15)
         res.encoding = res.apparent_encoding
 
         if res.status_code != 200:
