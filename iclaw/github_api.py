@@ -1,6 +1,6 @@
 import os
 
-import requests
+from iclaw import http
 
 GITHUB_API_BASE = os.environ.get("ICLAW_GITHUB_API_BASE", "https://api.github.com")
 COPILOT_API_BASE = os.environ.get(
@@ -17,7 +17,7 @@ COPILOT_HEADERS = {
 
 
 def get_copilot_token(github_token):
-    resp = requests.get(
+    resp = http.get_session().get(
         f"{GITHUB_API_BASE}/copilot_internal/v2/token",
         headers={
             "Authorization": f"Bearer {github_token}",
@@ -34,7 +34,7 @@ def get_copilot_token(github_token):
 
 
 def get_models(copilot_token):
-    resp = requests.get(
+    resp = http.get_session().get(
         f"{COPILOT_API_BASE}/models",
         headers={"Authorization": f"Bearer {copilot_token}", **COPILOT_HEADERS},
     )
@@ -48,7 +48,7 @@ def chat(messages, copilot_token, model="gpt-4o", tools=None):
     if tools:
         payload["tools"] = tools
 
-    resp = requests.post(
+    resp = http.get_session().post(
         f"{COPILOT_API_BASE}/chat/completions",
         headers={"Authorization": f"Bearer {copilot_token}", **COPILOT_HEADERS},
         json=payload,
