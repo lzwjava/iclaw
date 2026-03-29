@@ -68,7 +68,9 @@
       "Bash(mount:*)",
       "Bash(nmcli:*)",
       "Bash(ruff check:*)",
-      "WebFetch(domain:github.blog)"
+      "WebFetch(domain:github.blog)",
+      "Bash(PYTHONNOUSERSITE=0 /opt/homebrew/opt/python@3.14/bin/python3.14 -c \"import sys; print\\(sys.path\\)\" 2>&1)",
+      "Bash(/opt/homebrew/opt/python@3.14/bin/python3.14 -c \"import sys; sys.path.append\\('/opt/homebrew/lib/python3.14/site-packages'\\); import requests; print\\('ok'\\)\" 2>&1)"
     ],
     "deny": [],
     "ask": [
