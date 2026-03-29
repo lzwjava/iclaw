@@ -32,14 +32,14 @@ pip install -e .
 
 2. **GitHub 认证（首次运行时）**：
    ```
-   /model_provider
+   /provider_model
    ```
    选择 `copilot`，然后按照 GitHub 设备授权流程操作。令牌将保存到 `~/.config/iclaw/config.json`。
 
 ### 终端命令
-- `/model_provider`: 选择并认证模型提供商。
+- `/provider_model`: 选择并认证模型提供商。
 - `/model`: 查看并切换可用模型。
-- `/search_provider`: 查看并切换网页搜索提供商（默认：DuckDuckGo）。
+- `/provider_search`: 查看并切换网页搜索提供商（默认：DuckDuckGo）。
 - `/copy`: 将最后一条回复复制到剪贴板。
 - `/help`: 显示可用命令。
 - `.exit`: 退出 REPL。
@@ -54,7 +54,7 @@ pip install -e .
 
 ## 搜索引擎
 
-在会话中使用 `/search_provider` 切换搜索引擎：
+在会话中使用 `/provider_search` 切换搜索引擎：
 
 | 搜索引擎 | 需要 API Key | 说明 |
 |----------|-------------|------|

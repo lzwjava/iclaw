@@ -153,7 +153,7 @@ class TestIclawCompleter(unittest.TestCase):
         completions = self._completions("/")
         texts = [c.text for c in completions]
         # "/" prefix only matches slash-prefixed commands, not ".exit"
-        for cmd in ["/model_provider", "/model", "/search_provider", "/copy", "/help"]:
+        for cmd in ["/provider_model", "/model", "/provider_search", "/copy", "/help"]:
             self.assertIn(cmd, texts)
         self.assertNotIn(".exit", texts)
 
@@ -161,7 +161,7 @@ class TestIclawCompleter(unittest.TestCase):
         completions = self._completions("/mod")
         texts = [c.text for c in completions]
         self.assertIn("/model", texts)
-        self.assertIn("/model_provider", texts)
+        self.assertNotIn("/provider_model", texts)
         self.assertNotIn("/copy", texts)
         self.assertNotIn("/help", texts)
 

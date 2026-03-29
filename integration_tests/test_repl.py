@@ -248,7 +248,7 @@ class TestReplNoToken(unittest.TestCase):
 
     def test_search_provider_change(self):
         _read_until(self.q, "> ")
-        _send(self.process, "/search_provider")
+        _send(self.process, "/provider_search")
         out, found = _read_until(self.q, "Select search provider", timeout=8)
         self.assertTrue(found, f"Search provider prompt not found. Got: {out!r}")
         _send(self.process, "2")  # select startpage
@@ -258,7 +258,7 @@ class TestReplNoToken(unittest.TestCase):
 
     def test_search_provider_keep_current(self):
         _read_until(self.q, "> ")
-        _send(self.process, "/search_provider")
+        _send(self.process, "/provider_search")
         _read_until(self.q, "Select search provider", timeout=8)
         _send(self.process, "")  # press Enter to keep current
         out, found = _read_until(self.q, "> ", timeout=8)
@@ -267,7 +267,7 @@ class TestReplNoToken(unittest.TestCase):
 
     def test_search_provider_invalid_selection(self):
         _read_until(self.q, "> ")
-        _send(self.process, "/search_provider")
+        _send(self.process, "/provider_search")
         _read_until(self.q, "Select search provider", timeout=8)
         _send(self.process, "99")  # out of range
         out, found = _read_until(self.q, "> ", timeout=8)
@@ -276,7 +276,7 @@ class TestReplNoToken(unittest.TestCase):
 
     def test_search_provider_non_digit(self):
         _read_until(self.q, "> ")
-        _send(self.process, "/search_provider")
+        _send(self.process, "/provider_search")
         _read_until(self.q, "Select search provider", timeout=8)
         _send(self.process, "bad")
         out, found = _read_until(self.q, "> ", timeout=8)

@@ -111,7 +111,7 @@ class TestMain(unittest.TestCase):
     @patch("iclaw.main.handle_model_provider_command", return_value=("copilot", None))
     @patch("iclaw.main.PromptSession")
     def test_main_model_provider(self, mock_ps, mock_mp, mock_cp, mock_load, mock_http):
-        mock_ps.return_value = _mock_session("/model_provider", ".exit")
+        mock_ps.return_value = _mock_session("/provider_model", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
@@ -133,7 +133,7 @@ class TestMain(unittest.TestCase):
     def test_main_search_provider(
         self, mock_ps, mock_sp, mock_cp, mock_load, mock_http
     ):
-        mock_ps.return_value = _mock_session("/search_provider", ".exit")
+        mock_ps.return_value = _mock_session("/provider_search", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
@@ -283,7 +283,7 @@ class TestMain(unittest.TestCase):
     def test_main_model_provider_with_token(
         self, mock_ps, mock_mp, mock_cp, mock_load, mock_http
     ):
-        mock_ps.return_value = _mock_session("/model_provider", ".exit")
+        mock_ps.return_value = _mock_session("/provider_model", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 

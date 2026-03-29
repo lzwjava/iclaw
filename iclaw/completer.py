@@ -4,9 +4,9 @@ import subprocess
 from prompt_toolkit.completion import Completer, Completion
 
 COMMANDS = [
-    "/model_provider",
+    "/provider_model",
     "/model",
-    "/search_provider",
+    "/provider_search",
     "/proxy",
     "/ca_bundle",
     "/copy",

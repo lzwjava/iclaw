@@ -40,14 +40,14 @@ pip install -e .
 
 2. **Authenticate with GitHub** (on first run):
    ```
-   /model_provider
+   /provider_model
    ```
    Select `copilot`, then follow the GitHub device authorization flow. Your token is saved to `~/.config/iclaw/config.json`.
 
 ### CLI Commands
-- `/model_provider`: Select and authenticate with the model provider.
+- `/provider_model`: Select and authenticate with the model provider.
 - `/model`: View and switch between available models.
-- `/search_provider`: View and switch web search providers (default: DuckDuckGo).
+- `/provider_search`: View and switch web search providers (default: DuckDuckGo).
 - `/copy`: Copy the last response to your clipboard.
 - `/help`: Show available commands.
 - `.exit`: Quit the REPL.
@@ -62,7 +62,7 @@ The model has access to three tools it can invoke autonomously:
 
 ## Search Providers
 
-Switch providers during a session with `/search_provider`:
+Switch providers during a session with `/provider_search`:
 
 | Provider | API Key Required | Notes |
 |----------|-----------------|-------|

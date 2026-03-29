@@ -27,9 +27,9 @@ from iclaw.tools.edit_tool import EditTool
 from iclaw.web_search import web_search
 
 COMMANDS_HELP = [
-    ("/model_provider", "Select and authenticate with the model provider"),
+    ("/provider_model", "Select and authenticate with the model provider"),
     ("/model", "Select specific model from your provider"),
-    ("/search_provider", "Select the web search provider"),
+    ("/provider_search", "Select the web search provider"),
     ("/proxy", "Set HTTP/HTTPS proxy (usage: /proxy [url|off])"),
     ("/ca_bundle", "Set CA bundle for HTTPS (usage: /ca_bundle [path|off])"),
     ("/copy", "Copy last Copilot response to clipboard"),
@@ -60,7 +60,7 @@ def main():
         except Exception as e:
             print(f"Warning: {e}", file=sys.stderr)
     else:
-        print("No token found. Type /model_provider to authenticate.\n")
+        print("No token found. Type /provider_model to authenticate.\n")
 
     messages = []
     print("iclaw CLI ready. Available commands:")
@@ -91,7 +91,7 @@ def main():
         if user_input == "/copy":
             handle_copy_command(last_reply)
             continue
-        if user_input == "/model_provider":
+        if user_input == "/provider_model":
             p, t = handle_model_provider_command(CONFIG_PATH, model_provider)
             if t:
                 model_provider = p
@@ -116,7 +116,7 @@ def main():
                 ca_bundle=ca_bundle,
             )
             continue
-        if user_input == "/search_provider":
+        if user_input == "/provider_search":
             search_provider = handle_search_provider_command(search_provider)
             save_session_settings(
                 model_provider=model_provider,
@@ -163,7 +163,7 @@ def main():
             continue
 
         if not copilot_token:
-            print("Not authenticated. Type /model_provider first.", file=sys.stderr)
+            print("Not authenticated. Type /provider_model first.", file=sys.stderr)
             continue
 
         try:

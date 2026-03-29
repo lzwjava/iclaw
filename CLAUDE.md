@@ -62,7 +62,7 @@ GITHUB_TOKEN_INTEGRATION=<token> python3 -m unittest discover integration_tests
 - `iclaw/completer.py` — `IclawCompleter`: `@`-mention file completion (via `git ls-files`) and `/`-command completion
 - `iclaw/at_mention.py` — `resolve_at_mentions()`: expands `@path` tokens into file content XML
 - `iclaw/github_api.py` — `get_copilot_token()`, `get_models()`, `chat()`
-- `iclaw/commands/` — handlers for `/model_provider`, `/model`, `/search_provider`, `/copy`
+- `iclaw/commands/` — handlers for `/provider_model`, `/model`, `/provider_search`, `/copy`
 - `iclaw/config.py` — `CONFIG_PATH`, `TOKEN_REFRESH_INTERVAL`, `load_github_token()`
 
 **API endpoints:**
