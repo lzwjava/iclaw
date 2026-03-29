@@ -61,20 +61,20 @@ def main():
     http.reconfigure(proxy=proxy, ca_bundle=ca_bundle)
 
     if github_token:
-        print("Connecting to GitHub Copilot...")
+        log.log_info("Connecting to GitHub Copilot...")
         try:
             copilot_token = get_copilot_token(github_token)
             token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
         except Exception as e:
             print(f"Warning: {e}", file=sys.stderr)
     else:
-        print("No token found. Type /provider_model to authenticate.\n")
+        log.log_info("No token found. Type /provider_model to authenticate.\n")
 
     messages = []
-    print("iclaw CLI ready. Available commands:")
+    log.log_info("iclaw CLI ready. Available commands:")
     for cmd, desc in COMMANDS_HELP:
-        print(f"  {cmd:<20} {desc}")
-    print()
+        log.log_info(f"  {cmd:<20} {desc}")
+    log.log_info("")
 
     session = PromptSession(completer=IclawCompleter(), complete_while_typing=True)
 
@@ -130,7 +130,7 @@ def main():
             query = user_input.split(maxsplit=1)[1]
             search_context = web_search(query, num_results=5, provider=search_provider)
             if not copilot_token:
-                print(f"\n{search_context}\n")
+                log.log_info(f"\n{search_context}\n")
                 continue
             search_msg = (
                 f"Based on the following web search results for '{query}', "
@@ -148,7 +148,7 @@ def main():
                 reply = response_message.get("content", "")
                 messages.append({"role": "assistant", "content": reply})
                 last_reply = reply
-                print(f"\n{reply}\n")
+                log.log_info(f"\n{reply}\n")
             except Exception as e:
                 print(f"Error: {e}", file=sys.stderr)
             continue
@@ -236,6 +236,9 @@ def main():
                 for tool_call in response_message["tool_calls"]:
                     function_name = tool_call["function"]["name"]
                     function_args = json.loads(tool_call["function"]["arguments"])
+                    log.log_verbose(
+                        f"[tool] Calling {function_name} with {json.dumps(function_args)}"
+                    )
 
                     if function_name == "web_search":
                         search_context = web_search(
@@ -251,6 +254,7 @@ def main():
                                 "content": search_context,
                             }
                         )
+                        log.log_verbose(f"[tool] Result: {search_context}")
 
                     if function_name == "exec":
                         output = exec(function_args.get("command"))
@@ -262,6 +266,7 @@ def main():
                                 "content": output,
                             }
                         )
+                        log.log_verbose(f"[tool] Result: {output}")
 
                     if function_name == "edit":
                         file_path = function_args.get("file_path")
@@ -278,6 +283,9 @@ def main():
                                 "content": f"Successfully edited {file_path}",
                             }
                         )
+                        log.log_verbose(
+                            f"[tool] Result: Successfully edited {file_path}"
+                        )
 
                 response_message = chat(
                     messages, copilot_token, current_model, tools=TOOLS
@@ -286,7 +294,7 @@ def main():
             reply = response_message["content"]
             messages.append({"role": "assistant", "content": reply})
             last_reply = reply
-            print(f"\n{reply}\n")
+            log.log_info(f"\n{reply}\n")
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
 
