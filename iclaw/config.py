@@ -37,7 +37,7 @@ def load_session_settings() -> dict:
 
 
 def save_session_settings(
-    model_provider, current_model, search_provider, proxy=None, ca_bundle=None
+    *, model_provider, current_model, search_provider, proxy=None, ca_bundle=None
 ) -> None:
     config = _load_config()
     config["model_provider"] = model_provider

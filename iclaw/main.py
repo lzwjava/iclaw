@@ -6,8 +6,10 @@ import time
 
 from prompt_toolkit import PromptSession
 
+from iclaw import http
 from iclaw.at_mention import resolve_at_mentions
 from iclaw.commands.model import handle_model_command, handle_model_provider_command
+from iclaw.commands.proxy import handle_ca_bundle_command, handle_proxy_command
 from iclaw.commands.search_provider import handle_search_provider_command
 from iclaw.commands.utils import handle_copy_command
 from iclaw.completer import IclawCompleter
@@ -28,6 +30,8 @@ COMMANDS_HELP = [
     ("/model_provider", "Select and authenticate with the model provider"),
     ("/model", "Select specific model from your provider"),
     ("/search_provider", "Select the web search provider"),
+    ("/proxy", "Set HTTP/HTTPS proxy (usage: /proxy [url|off])"),
+    ("/ca_bundle", "Set CA bundle for HTTPS (usage: /ca_bundle [path|off])"),
     ("/copy", "Copy last Copilot response to clipboard"),
     ("/status", "Show current settings"),
     ("/help", "Show available commands"),
@@ -44,6 +48,9 @@ def main():
     model_provider = settings["model_provider"]
     current_model = settings["current_model"]
     search_provider = settings["search_provider"]
+    proxy = settings["proxy"]
+    ca_bundle = settings["ca_bundle"]
+    http.reconfigure(proxy=proxy, ca_bundle=ca_bundle)
 
     if github_token:
         print("Connecting to GitHub Copilot...")
@@ -91,20 +98,66 @@ def main():
                 copilot_token = t
                 github_token = load_github_token()
                 token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
-                save_session_settings(model_provider, current_model, search_provider)
+                save_session_settings(
+                    model_provider=model_provider,
+                    current_model=current_model,
+                    search_provider=search_provider,
+                    proxy=proxy,
+                    ca_bundle=ca_bundle,
+                )
             continue
         if user_input == "/model":
             current_model = handle_model_command(copilot_token, current_model)
-            save_session_settings(model_provider, current_model, search_provider)
+            save_session_settings(
+                model_provider=model_provider,
+                current_model=current_model,
+                search_provider=search_provider,
+                proxy=proxy,
+                ca_bundle=ca_bundle,
+            )
             continue
         if user_input == "/search_provider":
             search_provider = handle_search_provider_command(search_provider)
-            save_session_settings(model_provider, current_model, search_provider)
+            save_session_settings(
+                model_provider=model_provider,
+                current_model=current_model,
+                search_provider=search_provider,
+                proxy=proxy,
+                ca_bundle=ca_bundle,
+            )
+            continue
+        if user_input == "/proxy" or user_input.startswith("/proxy "):
+            parts = user_input.split(maxsplit=1)
+            arg = parts[1] if len(parts) > 1 else None
+            proxy = handle_proxy_command(proxy, arg)
+            http.reconfigure(proxy=proxy, ca_bundle=ca_bundle)
+            save_session_settings(
+                model_provider=model_provider,
+                current_model=current_model,
+                search_provider=search_provider,
+                proxy=proxy,
+                ca_bundle=ca_bundle,
+            )
+            continue
+        if user_input == "/ca_bundle" or user_input.startswith("/ca_bundle "):
+            parts = user_input.split(maxsplit=1)
+            arg = parts[1] if len(parts) > 1 else None
+            ca_bundle = handle_ca_bundle_command(ca_bundle, arg)
+            http.reconfigure(proxy=proxy, ca_bundle=ca_bundle)
+            save_session_settings(
+                model_provider=model_provider,
+                current_model=current_model,
+                search_provider=search_provider,
+                proxy=proxy,
+                ca_bundle=ca_bundle,
+            )
             continue
         if user_input == "/status":
             print(f"  model_provider:  {model_provider}")
             print(f"  model:           {current_model}")
             print(f"  search_provider: {search_provider}")
+            print(f"  proxy:           {proxy or '(not set)'}")
+            print(f"  ca_bundle:       {ca_bundle or '(system default)'}")
             print(f"  cwd:             {os.getcwd()}")
             print()
             continue

@@ -20,10 +20,11 @@ def _ps(*inputs):
 
 
 class TestMain(unittest.TestCase):
+    @patch("iclaw.main.http")
     @patch("iclaw.main.chat")
     @patch("iclaw.main.load_github_token")
     @patch("iclaw.main.PromptSession")
-    def test_main_cli(self, mock_ps, mock_load, mock_chat):
+    def test_main_cli(self, mock_ps, mock_load, mock_chat, mock_http):
         mock_load.return_value = "gt"
         mock_ps.return_value = _mock_session(".exit")
         with (
@@ -50,95 +51,108 @@ class TestMain(unittest.TestCase):
             mp.read_text.return_value = "not json"
             self.assertIsNone(main.load_github_token())
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value=None)
     @patch("iclaw.main.PromptSession")
-    def test_main_no_token(self, mock_ps, mock_load):
+    def test_main_no_token(self, mock_ps, mock_load, mock_http):
         mock_ps.return_value = _mock_session(".exit")
         with patch("sys.stdout"), patch("sys.stderr"):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", side_effect=Exception("fail"))
     @patch("iclaw.main.PromptSession")
-    def test_main_copilot_token_error(self, mock_ps, mock_cp, mock_load):
+    def test_main_copilot_token_error(self, mock_ps, mock_cp, mock_load, mock_http):
         mock_ps.return_value = _mock_session(".exit")
         with patch("sys.stdout"), patch("sys.stderr"):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.PromptSession")
-    def test_main_empty_and_help(self, mock_ps, mock_cp, mock_load):
+    def test_main_empty_and_help(self, mock_ps, mock_cp, mock_load, mock_http):
         mock_ps.return_value = _mock_session("", "/help", "/", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.PromptSession")
-    def test_main_eof(self, mock_ps, mock_cp, mock_load):
+    def test_main_eof(self, mock_ps, mock_cp, mock_load, mock_http):
         mock_ps.return_value = _mock_session(EOFError())
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value=None)
     @patch("iclaw.main.PromptSession")
-    def test_main_not_authenticated(self, mock_ps, mock_load):
+    def test_main_not_authenticated(self, mock_ps, mock_load, mock_http):
         mock_ps.return_value = _mock_session("hello", ".exit")
         with patch("sys.stdout"), patch("sys.stderr"):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.handle_copy_command")
     @patch("iclaw.main.PromptSession")
-    def test_main_copy(self, mock_ps, mock_copy, mock_cp, mock_load):
+    def test_main_copy(self, mock_ps, mock_copy, mock_cp, mock_load, mock_http):
         mock_ps.return_value = _mock_session("/copy", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
         mock_copy.assert_called_once()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.handle_model_provider_command", return_value=("copilot", None))
     @patch("iclaw.main.PromptSession")
-    def test_main_model_provider(self, mock_ps, mock_mp, mock_cp, mock_load):
+    def test_main_model_provider(self, mock_ps, mock_mp, mock_cp, mock_load, mock_http):
         mock_ps.return_value = _mock_session("/model_provider", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.handle_model_command", return_value="gpt-4o")
     @patch("iclaw.main.PromptSession")
-    def test_main_model(self, mock_ps, mock_mc, mock_cp, mock_load):
+    def test_main_model(self, mock_ps, mock_mc, mock_cp, mock_load, mock_http):
         mock_ps.return_value = _mock_session("/model", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.handle_search_provider_command", return_value="bing")
     @patch("iclaw.main.PromptSession")
-    def test_main_search_provider(self, mock_ps, mock_sp, mock_cp, mock_load):
+    def test_main_search_provider(
+        self, mock_ps, mock_sp, mock_cp, mock_load, mock_http
+    ):
         mock_ps.return_value = _mock_session("/search_provider", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.chat", return_value={"content": "hi"})
     @patch("iclaw.main.PromptSession")
-    def test_main_chat(self, mock_ps, mock_chat, mock_cp, mock_load):
+    def test_main_chat(self, mock_ps, mock_chat, mock_cp, mock_load, mock_http):
         mock_ps.return_value = _mock_session("hello", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.chat", side_effect=Exception("API error"))
     @patch("iclaw.main.PromptSession")
-    def test_main_chat_error(self, mock_ps, mock_chat, mock_cp, mock_load):
+    def test_main_chat_error(self, mock_ps, mock_chat, mock_cp, mock_load, mock_http):
         mock_ps.return_value = _mock_session("hello", ".exit")
         with (
             patch("sys.stdout"),
@@ -147,13 +161,14 @@ class TestMain(unittest.TestCase):
         ):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.chat")
     @patch("iclaw.main.web_search", return_value="search results")
     @patch("iclaw.main.PromptSession")
     def test_main_tool_call_web_search(
-        self, mock_ps, mock_ws, mock_chat, mock_cp, mock_load
+        self, mock_ps, mock_ws, mock_chat, mock_cp, mock_load, mock_http
     ):
         mock_ps.return_value = _mock_session("hello", ".exit")
         mock_chat.side_effect = [
@@ -175,13 +190,14 @@ class TestMain(unittest.TestCase):
             main.main()
         mock_ws.assert_called_once()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.chat")
     @patch("iclaw.main.exec", return_value="output")
     @patch("iclaw.main.PromptSession")
     def test_main_tool_call_exec(
-        self, mock_ps, mock_exec, mock_chat, mock_cp, mock_load
+        self, mock_ps, mock_exec, mock_chat, mock_cp, mock_load, mock_http
     ):
         mock_ps.return_value = _mock_session("hello", ".exit")
         mock_chat.side_effect = [
@@ -202,11 +218,14 @@ class TestMain(unittest.TestCase):
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.chat")
     @patch("iclaw.main.PromptSession")
-    def test_main_tool_call_edit(self, mock_ps, mock_chat, mock_cp, mock_load):
+    def test_main_tool_call_edit(
+        self, mock_ps, mock_chat, mock_cp, mock_load, mock_http
+    ):
         mock_ps.return_value = _mock_session("hello", ".exit")
         mock_chat.side_effect = [
             {
@@ -236,11 +255,14 @@ class TestMain(unittest.TestCase):
             if os.path.exists(tmp):
                 os.remove(tmp)
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch("iclaw.main.chat", return_value={"content": "hi"})
     @patch("iclaw.main.PromptSession")
-    def test_main_token_refresh(self, mock_ps, mock_chat, mock_cp, mock_load):
+    def test_main_token_refresh(
+        self, mock_ps, mock_chat, mock_cp, mock_load, mock_http
+    ):
         mock_ps.return_value = _mock_session("hello", ".exit")
         with (
             patch("sys.stdout"),
@@ -250,6 +272,7 @@ class TestMain(unittest.TestCase):
         # get_copilot_token called twice: once at startup, once on refresh
         self.assertEqual(mock_cp.call_count, 2)
 
+    @patch("iclaw.main.http")
     @patch("iclaw.main.load_github_token", return_value="gt")
     @patch("iclaw.main.get_copilot_token", return_value="ct")
     @patch(
@@ -257,8 +280,19 @@ class TestMain(unittest.TestCase):
         return_value=("copilot", "new_token"),
     )
     @patch("iclaw.main.PromptSession")
-    def test_main_model_provider_with_token(self, mock_ps, mock_mp, mock_cp, mock_load):
+    def test_main_model_provider_with_token(
+        self, mock_ps, mock_mp, mock_cp, mock_load, mock_http
+    ):
         mock_ps.return_value = _mock_session("/model_provider", ".exit")
+        with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
+            main.main()
+
+    @patch("iclaw.main.http")
+    @patch("iclaw.main.load_github_token", return_value="gt")
+    @patch("iclaw.main.get_copilot_token", return_value="ct")
+    @patch("iclaw.main.PromptSession")
+    def test_main_status(self, mock_ps, mock_cp, mock_load, mock_http):
+        mock_ps.return_value = _mock_session("/status", ".exit")
         with patch("sys.stdout"), patch("iclaw.main.time.monotonic", return_value=0):
             main.main()
 

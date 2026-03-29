@@ -7,6 +7,8 @@ COMMANDS = [
     "/model_provider",
     "/model",
     "/search_provider",
+    "/proxy",
+    "/ca_bundle",
     "/copy",
     "/status",
     "/help",
