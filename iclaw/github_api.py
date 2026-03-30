@@ -51,6 +51,7 @@ def chat(messages, copilot_token, model="gpt-4o", tools=None):
     payload = {"model": model, "messages": messages, "stream": False}
     if tools:
         payload["tools"] = tools
+        payload["tool_choice"] = "auto"
 
     resp = http.get_session().post(
         f"{COPILOT_API_BASE}/chat/completions",

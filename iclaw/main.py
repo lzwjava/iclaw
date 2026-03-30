@@ -10,6 +10,7 @@ from iclaw import http
 from iclaw import log
 from iclaw.at_mention import resolve_at_mentions
 from iclaw.commands.compact import handle_compact_command
+from iclaw.commands.export import handle_export_command
 from iclaw.commands.log import handle_log_command
 from iclaw.commands.model import handle_model_command, handle_model_provider_command
 from iclaw.commands.proxy import handle_ca_bundle_command, handle_proxy_command
@@ -40,6 +41,7 @@ COMMANDS_HELP = [
     ("/copy", "Copy last Copilot response to clipboard"),
     ("/clear", "Clear conversation history"),
     ("/compact", "Compact conversation history using LLM"),
+    ("/export", "Export full conversation history to JSON file"),
     ("/status", "Show current settings"),
     ("/help", "Show available commands"),
     (".exit", "Quit"),
@@ -74,6 +76,7 @@ def main():
         log.log_info("No token found. Type /provider_model to authenticate.\n")
 
     messages = []
+    tool_logs = []
     log.log_info("iclaw CLI ready. Available commands:")
     for cmd, desc in COMMANDS_HELP:
         log.log_info(f"  {cmd:<20} {desc}")
@@ -225,6 +228,7 @@ def main():
             continue
         if user_input == "/clear":
             messages.clear()
+            tool_logs.clear()
             last_reply = None
             print("Conversation history cleared.")
             continue
@@ -232,6 +236,9 @@ def main():
             messages = handle_compact_command(
                 messages, chat, copilot_token, current_model
             )
+            continue
+        if user_input == "/export":
+            handle_export_command(messages, tool_logs)
             continue
 
         if not copilot_token:
@@ -263,6 +270,16 @@ def main():
                             num_results=function_args.get("num_results", 20),
                             provider=search_provider,
                         )
+                        tool_logs.append(
+                            {
+                                "timestamp": time.time(),
+                                "function": function_name,
+                                "args": function_args,
+                                "result": search_context[:500] + "..."
+                                if len(search_context) > 500
+                                else search_context,
+                            }
+                        )
                         messages.append(
                             {
                                 "tool_call_id": tool_call["id"],
@@ -275,6 +292,16 @@ def main():
 
                     if function_name == "exec":
                         output = exec(function_args.get("command"))
+                        tool_logs.append(
+                            {
+                                "timestamp": time.time(),
+                                "function": function_name,
+                                "args": function_args,
+                                "result": output[:500] + "..."
+                                if len(output) > 500
+                                else output,
+                            }
+                        )
                         messages.append(
                             {
                                 "tool_call_id": tool_call["id"],
@@ -292,6 +319,14 @@ def main():
                         )
                         with open(file_path, "w") as f:
                             f.write(result)
+                        tool_logs.append(
+                            {
+                                "timestamp": time.time(),
+                                "function": function_name,
+                                "args": function_args,
+                                "result": f"Successfully edited {file_path}",
+                            }
+                        )
                         messages.append(
                             {
                                 "tool_call_id": tool_call["id"],
