@@ -47,11 +47,19 @@ pip install -e .
 
 ### CLI Commands
 - `/provider_model`: Select and authenticate with the model provider.
-- `/model`: View and switch between available models.
-- `/provider_search`: View and switch web search providers (default: DuckDuckGo).
-- `/copy`: Copy the last response to your clipboard.
+- `/model`: Select specific model from your provider.
+- `/search`: Web search (usage: `/search <query>`).
+- `/provider_search`: Select the web search provider.
+- `/proxy`: Set HTTP/HTTPS proxy (usage: `/proxy [url|off]`).
+- `/ca_bundle`: Set CA bundle for HTTPS (usage: `/ca_bundle [path|off]`).
+- `/log`: Set log verbosity (usage: `/log [verbose|info]`).
+- `/copy`: Copy last response to clipboard.
+- `/clear`: Clear conversation history.
+- `/compact`: Compact conversation history using LLM.
+- `/export`: Export full conversation history to JSON file.
+- `/status`: Show current settings.
 - `/help`: Show available commands.
-- `.exit`: Quit the REPL.
+- `/exit`: Quit the REPL.
 
 ## Native Tool Calling
 
