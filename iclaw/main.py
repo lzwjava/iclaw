@@ -44,7 +44,7 @@ COMMANDS_HELP = [
     ("/export", "Export full conversation history to JSON file"),
     ("/status", "Show current settings"),
     ("/help", "Show available commands"),
-    (".exit", "Quit"),
+    ("/exit", "Quit"),
 ]
 
 
@@ -99,7 +99,7 @@ def main():
                 print(f"  {cmd:<20} {desc}")
             print()
             continue
-        if user_input == ".exit":
+        if user_input in ("/exit", ".exit"):
             print("Goodbye!")
             break
         if user_input == "/copy":

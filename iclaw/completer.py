@@ -17,7 +17,7 @@ COMMANDS = [
     "/clear",
     "/compact",
     "/export",
-    ".exit",
+    "/exit",
 ]
 
 
