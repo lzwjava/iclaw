@@ -15,6 +15,7 @@ COMMANDS = [
     "/status",
     "/help",
     "/clear",
+    "/compact",
     ".exit",
 ]
 

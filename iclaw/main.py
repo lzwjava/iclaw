@@ -9,6 +9,7 @@ from prompt_toolkit import PromptSession
 from iclaw import http
 from iclaw import log
 from iclaw.at_mention import resolve_at_mentions
+from iclaw.commands.compact import handle_compact_command
 from iclaw.commands.log import handle_log_command
 from iclaw.commands.model import handle_model_command, handle_model_provider_command
 from iclaw.commands.proxy import handle_ca_bundle_command, handle_proxy_command
@@ -38,6 +39,7 @@ COMMANDS_HELP = [
     ("/log", "Set log verbosity (usage: /log [verbose|info])"),
     ("/copy", "Copy last Copilot response to clipboard"),
     ("/clear", "Clear conversation history"),
+    ("/compact", "Compact conversation history using LLM"),
     ("/status", "Show current settings"),
     ("/help", "Show available commands"),
     (".exit", "Quit"),
@@ -221,6 +223,11 @@ def main():
             messages.clear()
             last_reply = None
             print("Conversation history cleared.")
+            continue
+        if user_input == "/compact":
+            messages = handle_compact_command(
+                messages, chat, copilot_token, current_model
+            )
             continue
 
         if not copilot_token:
