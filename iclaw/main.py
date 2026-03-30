@@ -37,6 +37,7 @@ COMMANDS_HELP = [
     ("/ca_bundle", "Set CA bundle for HTTPS (usage: /ca_bundle [path|off])"),
     ("/log", "Set log verbosity (usage: /log [verbose|info])"),
     ("/copy", "Copy last Copilot response to clipboard"),
+    ("/clear", "Clear conversation history"),
     ("/status", "Show current settings"),
     ("/help", "Show available commands"),
     (".exit", "Quit"),
@@ -215,6 +216,11 @@ def main():
             print(f"  log_level:       {log_level}")
             print(f"  cwd:             {os.getcwd()}")
             print()
+            continue
+        if user_input == "/clear":
+            messages.clear()
+            last_reply = None
+            print("Conversation history cleared.")
             continue
 
         if not copilot_token:
