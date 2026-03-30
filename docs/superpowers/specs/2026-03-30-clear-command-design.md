@@ -36,9 +36,9 @@ Add a `/clear` command to the iclaw CLI that empties the conversation history, a
 2. Add handler after `/status` (line ~218):
    ```python
    if user_input == "/clear":
-       messages = []
+       messages.clear()
        last_reply = None
-       print("Conversation cleared.")
+       print("Conversation history cleared.")
        continue
    ```
 
