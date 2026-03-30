@@ -1,6 +1,8 @@
 import sys
+import concurrent.futures
 from iclaw.github_api import get_models, get_copilot_token
 from iclaw.commands.auth import handle_login_command
+from iclaw.commands.test_models import test_model
 
 
 def handle_model_provider_command(config_path, current_provider):
@@ -46,12 +48,29 @@ def handle_model_command(copilot_token, current_model):
         print(f"Error fetching models: {e}\n", file=sys.stderr)
         return current_model
 
+    total = len(model_data)
+    print(f"Testing {total} models...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {
+            executor.submit(test_model, copilot_token, m["id"]): m for m in model_data
+        }
+        working_models = []
+        completed = 0
+        for future in concurrent.futures.as_completed(futures):
+            model_id, works = future.result()
+            if works:
+                working_models.append(futures[future])
+            completed += 1
+            pct = int(completed * 100 / total)
+            print(f"\r{pct}% ({completed}/{total})", end="", flush=True)
+    print()
+
     groups = {}
-    for m in model_data:
+    for m in working_models:
         owner = m.get("owned_by", "unknown")
         groups.setdefault(owner, []).append(m["id"])
 
-    flat_models = [m["id"] for m in model_data]
+    flat_models = [m["id"] for m in working_models]
     print(f"\nCurrent model: {current_model}")
     print("Available models:")
 

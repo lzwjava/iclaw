@@ -24,7 +24,7 @@ from iclaw.config import (
     save_session_settings,
 )
 from iclaw.exec_tool import exec_command as exec
-from iclaw.github_api import chat, get_copilot_token
+from iclaw.github_api import UnsupportedModelError, chat, get_copilot_token
 from iclaw.tools.defs import TOOLS
 from iclaw.tools.edit_tool import EditTool
 from iclaw.web_search import web_search
@@ -152,6 +152,10 @@ def main():
                 messages.append({"role": "assistant", "content": reply})
                 last_reply = reply
                 log.log_info(f"\n{reply}\n")
+            except UnsupportedModelError as e:
+                print(f"Error: {e}", file=sys.stderr)
+                print("Please select a different model with /model", file=sys.stderr)
+                messages.pop()
             except Exception as e:
                 print(f"Error: {e}", file=sys.stderr)
             continue
@@ -308,6 +312,10 @@ def main():
             messages.append({"role": "assistant", "content": reply})
             last_reply = reply
             log.log_info(f"\n{reply}\n")
+        except UnsupportedModelError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            print("Please select a different model with /model", file=sys.stderr)
+            messages.pop()
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
 

@@ -43,6 +43,10 @@ def get_models(copilot_token):
     return resp.json().get("data", [])
 
 
+class UnsupportedModelError(Exception):
+    pass
+
+
 def chat(messages, copilot_token, model="gpt-4o", tools=None):
     payload = {"model": model, "messages": messages, "stream": False}
     if tools:
@@ -54,6 +58,10 @@ def chat(messages, copilot_token, model="gpt-4o", tools=None):
         json=payload,
     )
     if not resp.ok:
+        if resp.status_code == 400 and "unsupported_api_for_model" in resp.text:
+            raise UnsupportedModelError(
+                f'Model "{model}" is not accessible via /chat/completions'
+            )
         raise RuntimeError(
             f"Chat API error: {resp.status_code} {resp.reason}\n{resp.text}"
         )
