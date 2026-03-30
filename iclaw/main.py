@@ -132,8 +132,22 @@ def main():
                 log_level=log_level,
             )
             continue
-        if user_input.startswith("/search "):
-            query = user_input.split(maxsplit=1)[1]
+        if user_input.startswith("/search") or user_input == "/search":
+            if user_input.startswith("/search "):
+                query = user_input.split(maxsplit=1)[1]
+            else:
+                # Use last user message as query
+                last_user_msg = next(
+                    (m["content"] for m in reversed(messages) if m["role"] == "user"),
+                    None,
+                )
+                if not last_user_msg:
+                    print(
+                        "No previous message to search. Usage: /search <query>",
+                        file=sys.stderr,
+                    )
+                    continue
+                query = last_user_msg
             search_context = web_search(query, num_results=5, provider=search_provider)
             if not copilot_token:
                 log.log_info(f"\n{search_context}\n")
