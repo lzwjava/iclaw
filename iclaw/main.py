@@ -75,9 +75,19 @@ def main():
     else:
         log.log_info("No token found. Type /provider_model to authenticate.\n")
 
+    print(
+        """
+  ██  █████  ██       █████  ██   ██
+  ██ ██      ██      ██   ██ ██   ██
+  ██ ██      ██      ███████ ██ █ ██
+  ██ ██      ██      ██   ██ ██████
+  ██  █████  ███████ ██   ██  ███ ██
+"""
+    )
+
     messages = []
     tool_logs = []
-    log.log_info("iclaw CLI ready. Available commands:")
+    log.log_info("Available commands:")
     for cmd, desc in COMMANDS_HELP:
         log.log_info(f"  {cmd:<20} {desc}")
     log.log_info("")
