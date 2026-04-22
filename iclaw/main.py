@@ -22,11 +22,13 @@ from iclaw.config import (
     CONFIG_PATH,
     TOKEN_REFRESH_INTERVAL,
     load_github_token,
+    load_openrouter_api_key,
     load_session_settings,
     save_session_settings,
 )
 from iclaw.exec_tool import exec_command as exec
 from iclaw.github_api import UnsupportedModelError, chat, get_copilot_token
+from iclaw.providers import openrouter
 from iclaw.tools.defs import TOOLS
 from iclaw.tools.edit_tool import EditTool
 from iclaw.web_search import web_search
@@ -50,9 +52,15 @@ COMMANDS_HELP = [
 ]
 
 
+def _chat(provider, token, messages, model, tools=None):
+    if provider == "openrouter":
+        return openrouter.chat(messages, token, model, tools=tools)
+    return chat(messages, token, model, tools=tools)
+
+
 def main():
     github_token = load_github_token()
-    copilot_token = None
+    provider_token = None
     token_expiry = 0
     last_reply = None
     settings = load_session_settings()
@@ -67,13 +75,21 @@ def main():
     )
     http.reconfigure(proxy=proxy, ca_bundle=ca_bundle)
 
-    if github_token:
+    if model_provider == "copilot" and github_token:
         log.log_info("Connecting to GitHub Copilot...")
         try:
-            copilot_token = get_copilot_token(github_token)
+            provider_token = get_copilot_token(github_token)
             token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
         except Exception as e:
             print(f"Warning: {e}", file=sys.stderr)
+    elif model_provider == "openrouter":
+        provider_token = load_openrouter_api_key()
+        if provider_token:
+            log.log_info("Using OpenRouter.")
+        else:
+            log.log_info(
+                "OpenRouter selected but no API key found. Type /provider_model.\n"
+            )
     else:
         log.log_info("No token found. Type /provider_model to authenticate.\n")
 
@@ -126,9 +142,12 @@ def main():
             p, t = handle_model_provider_command(CONFIG_PATH, model_provider)
             if t:
                 model_provider = p
-                copilot_token = t
-                github_token = load_github_token()
-                token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
+                provider_token = t
+                if model_provider == "copilot":
+                    github_token = load_github_token()
+                    token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
+                else:
+                    token_expiry = 0
                 save_session_settings(
                     model_provider=model_provider,
                     current_model=current_model,
@@ -139,7 +158,9 @@ def main():
                 )
             continue
         if user_input == "/model":
-            current_model = handle_model_command(copilot_token, current_model)
+            current_model = handle_model_command(
+                model_provider, provider_token, current_model
+            )
             save_session_settings(
                 model_provider=model_provider,
                 current_model=current_model,
@@ -166,7 +187,7 @@ def main():
                     continue
                 query = last_user_msg
             search_context = web_search(query, num_results=5, provider=search_provider)
-            if not copilot_token:
+            if not provider_token:
                 log.log_info(f"\n{search_context}\n")
                 continue
             search_msg = (
@@ -176,11 +197,15 @@ def main():
             )
             messages.append({"role": "user", "content": search_msg})
             try:
-                if time.monotonic() >= token_expiry and github_token:
-                    copilot_token = get_copilot_token(github_token)
+                if (
+                    model_provider == "copilot"
+                    and time.monotonic() >= token_expiry
+                    and github_token
+                ):
+                    provider_token = get_copilot_token(github_token)
                     token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
-                response_message = chat(
-                    messages, copilot_token, current_model, tools=TOOLS
+                response_message = _chat(
+                    model_provider, provider_token, messages, current_model, tools=TOOLS
                 )
                 reply = response_message.get("content", "")
                 messages.append({"role": "assistant", "content": reply})
@@ -265,26 +290,37 @@ def main():
             continue
         if user_input == "/compact":
             messages = handle_compact_command(
-                messages, chat, copilot_token, current_model
+                messages,
+                lambda m, t, mdl, tools=None: _chat(
+                    model_provider, t, m, mdl, tools=tools
+                ),
+                provider_token,
+                current_model,
             )
             continue
         if user_input == "/export":
             handle_export_command(messages, tool_logs)
             continue
 
-        if not copilot_token:
+        if not provider_token:
             print("Not authenticated. Type /provider_model first.", file=sys.stderr)
             continue
 
         try:
-            if time.monotonic() >= token_expiry and github_token:
-                copilot_token = get_copilot_token(github_token)
+            if (
+                model_provider == "copilot"
+                and time.monotonic() >= token_expiry
+                and github_token
+            ):
+                provider_token = get_copilot_token(github_token)
                 token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
 
             messages.append(
                 {"role": "user", "content": resolve_at_mentions(user_input)}
             )
-            response_message = chat(messages, copilot_token, current_model, tools=TOOLS)
+            response_message = _chat(
+                model_provider, provider_token, messages, current_model, tools=TOOLS
+            )
 
             while response_message.get("tool_calls"):
                 messages.append(response_message)
@@ -370,8 +406,8 @@ def main():
                             f"[tool] Result: Successfully edited {file_path}"
                         )
 
-                response_message = chat(
-                    messages, copilot_token, current_model, tools=TOOLS
+                response_message = _chat(
+                    model_provider, provider_token, messages, current_model, tools=TOOLS
                 )
 
             reply = response_message["content"]

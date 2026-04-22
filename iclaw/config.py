@@ -25,6 +25,18 @@ def load_github_token():
     return _load_config().get("github_token")
 
 
+def load_openrouter_api_key():
+    return os.environ.get("OPENROUTER_API_KEY") or _load_config().get(
+        "openrouter_api_key"
+    )
+
+
+def save_openrouter_api_key(api_key):
+    config = _load_config()
+    config["openrouter_api_key"] = api_key
+    _save_config(config)
+
+
 def load_session_settings() -> dict:
     config = _load_config()
     return {

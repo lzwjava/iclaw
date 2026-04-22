@@ -125,12 +125,23 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(p, "copilot")
         self.assertIsNone(t)
 
+    @patch("iclaw.commands.model.load_openrouter_api_key", return_value="env_key")
     @patch("iclaw.commands.model.input", return_value="2")
-    def test_model_provider_others(self, mock_input):
+    def test_model_provider_openrouter_from_env(self, mock_input, mock_key):
         with patch("sys.stdout"):
             p, t = model.handle_model_provider_command(MagicMock(), "copilot")
-        self.assertEqual(p, "copilot")
-        self.assertIsNone(t)
+        self.assertEqual(p, "openrouter")
+        self.assertEqual(t, "env_key")
+
+    @patch("iclaw.commands.model.save_openrouter_api_key")
+    @patch("iclaw.commands.model.load_openrouter_api_key", return_value=None)
+    @patch("iclaw.commands.model.input", side_effect=["2", "typed_key"])
+    def test_model_provider_openrouter_prompt(self, mock_input, mock_key, mock_save):
+        with patch("sys.stdout"):
+            p, t = model.handle_model_provider_command(MagicMock(), "copilot")
+        self.assertEqual(p, "openrouter")
+        self.assertEqual(t, "typed_key")
+        mock_save.assert_called_once_with("typed_key")
 
     @patch("iclaw.commands.model.input", return_value="99")
     def test_model_provider_invalid(self, mock_input):

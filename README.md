@@ -14,7 +14,8 @@ A minimal [openclaw](https://github.com/lzwjava/openclaw) implementation, built 
 
 ## Features
 
-- **Multi-turn conversations** with GitHub Copilot in your terminal.
+- **Multi-turn conversations** with GitHub Copilot or OpenRouter in your terminal.
+- **Multiple Model Providers**: GitHub Copilot (OAuth) and OpenRouter (API key).
 - **Native Tool Calling**: The model can autonomously invoke web search, execute shell commands, and edit files.
 - **Multiple Search Providers**: DuckDuckGo (default), Startpage, Bing, and Tavily.
 - **GitHub OAuth device flow** authentication.
@@ -41,11 +42,12 @@ pip install -e .
    iclaw
    ```
 
-2. **Authenticate with GitHub** (on first run):
+2. **Authenticate** (on first run):
    ```
    /provider_model
    ```
-   Select `copilot`, then follow the GitHub device authorization flow. Your token is saved to `~/.config/iclaw/config.json`.
+   - **Copilot**: select option 1, follow the GitHub device authorization flow. Your token is saved to `~/.config/iclaw/config.json`.
+   - **OpenRouter**: select option 2. iclaw reads `OPENROUTER_API_KEY` from the environment, or prompts for a key and saves it to `~/.config/iclaw/config.json`.
 
 ### CLI Commands
 - `/provider_model`: Select and authenticate with the model provider.
