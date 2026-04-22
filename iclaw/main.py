@@ -138,6 +138,9 @@ def main():
             arg = parts[1] if len(parts) > 1 else None
             handle_read_command(arg)
             continue
+        if user_input.startswith("@") and not any(c.isspace() for c in user_input):
+            handle_read_command(user_input)
+            continue
         if user_input == "/provider_model":
             p, t = handle_model_provider_command(CONFIG_PATH, model_provider)
             if t:
