@@ -12,6 +12,7 @@ COMMANDS = [
     "/ca_bundle",
     "/log",
     "/copy",
+    "/read",
     "/status",
     "/help",
     "/clear",

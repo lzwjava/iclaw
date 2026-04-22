@@ -2,7 +2,9 @@
 
 [中文](./README_CN.md)
 
-A minimal [openclaw](https://github.com/lzwjava/openclaw) implementation for enterprise-constrained environments. iclaw is a lightweight terminal REPL that provides AI-assisted coding via GitHub Copilot, designed to work where full-featured tools are blocked or restricted — no browser extensions, no IDE plugins, just a plain Python CLI.
+A terminal AI agent that codes, searches, and runs commands for you — works on personal machines and locked-down enterprise ones.
+
+A minimal [openclaw](https://github.com/lzwjava/openclaw) implementation, built as a plain Python CLI with no browser extensions or IDE plugins, powered by GitHub Copilot.
 
 *Disclaimer: All tests with Copilot were performed using my personal subscription and personal account.*
 
@@ -54,6 +56,7 @@ pip install -e .
 - `/ca_bundle`: Set CA bundle for HTTPS (usage: `/ca_bundle [path|off]`).
 - `/log`: Set log verbosity (usage: `/log [verbose|info]`).
 - `/copy`: Copy last response to clipboard.
+- `/read`: Print file contents to terminal (usage: `/read <path>`).
 - `/clear`: Clear conversation history.
 - `/compact`: Compact conversation history using LLM.
 - `/export`: Export full conversation history to JSON file.

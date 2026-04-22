@@ -14,6 +14,7 @@ from iclaw.commands.export import handle_export_command
 from iclaw.commands.log import handle_log_command
 from iclaw.commands.model import handle_model_command, handle_model_provider_command
 from iclaw.commands.proxy import handle_ca_bundle_command, handle_proxy_command
+from iclaw.commands.read import handle_read_command
 from iclaw.commands.search_provider import handle_search_provider_command
 from iclaw.commands.utils import handle_copy_command
 from iclaw.completer import IclawCompleter
@@ -39,6 +40,7 @@ COMMANDS_HELP = [
     ("/ca_bundle", "Set CA bundle for HTTPS (usage: /ca_bundle [path|off])"),
     ("/log", "Set log verbosity (usage: /log [verbose|info])"),
     ("/copy", "Copy last Copilot response to clipboard"),
+    ("/read", "Print file contents to terminal (usage: /read <path>)"),
     ("/clear", "Clear conversation history"),
     ("/compact", "Compact conversation history using LLM"),
     ("/export", "Export full conversation history to JSON file"),
@@ -114,6 +116,11 @@ def main():
             break
         if user_input == "/copy":
             handle_copy_command(last_reply)
+            continue
+        if user_input == "/read" or user_input.startswith("/read "):
+            parts = user_input.split(maxsplit=1)
+            arg = parts[1] if len(parts) > 1 else None
+            handle_read_command(arg)
             continue
         if user_input == "/provider_model":
             p, t = handle_model_provider_command(CONFIG_PATH, model_provider)
