@@ -53,10 +53,10 @@ COMMANDS_HELP = [
 ]
 
 
-def _chat(provider, token, messages, model, tools=None):
+def _chat(provider, token, messages, model, tools=None, stream=False):
     if provider == "openrouter":
-        return openrouter.chat(messages, token, model, tools=tools)
-    return chat(messages, token, model, tools=tools)
+        return openrouter.chat(messages, token, model, tools=tools, stream=stream)
+    return chat(messages, token, model, tools=tools, stream=stream)
 
 
 def main():
@@ -208,13 +208,22 @@ def main():
                 ):
                     provider_token = get_copilot_token(github_token)
                     token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
-                response_message = _chat(
-                    model_provider, provider_token, messages, current_model, tools=TOOLS
+                chunks = _chat(
+                    model_provider,
+                    provider_token,
+                    messages,
+                    current_model,
+                    tools=TOOLS,
+                    stream=True,
                 )
-                reply = response_message.get("content", "")
+                print()
+                reply = ""
+                for chunk in chunks:
+                    print(chunk, end="", flush=True)
+                    reply += chunk
+                print("\n")
                 messages.append({"role": "assistant", "content": reply})
                 last_reply = reply
-                log.log_info(f"\n{reply}\n")
             except UnsupportedModelError as e:
                 print(f"Error: {e}", file=sys.stderr)
                 print("Please select a different model with /model", file=sys.stderr)
