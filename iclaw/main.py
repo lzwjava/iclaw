@@ -34,6 +34,7 @@ from iclaw.tools.edit_tool import EditTool
 from iclaw.web_search import web_search
 
 COMMANDS_HELP = [
+    ("/cmd", "Run shell command directly (usage: /cmd <command>)"),
     ("/provider_model", "Select and authenticate with the model provider"),
     ("/model", "Select specific model from your provider"),
     ("/search", "Web search (usage: /search <query>)"),
@@ -303,6 +304,14 @@ def main():
             continue
         if user_input == "/export":
             handle_export_command(messages, tool_logs)
+            continue
+        if user_input == "/cmd" or user_input.startswith("/cmd "):
+            parts = user_input.split(maxsplit=1)
+            if len(parts) < 2 or not parts[1].strip():
+                print("Usage: /cmd <command>", file=sys.stderr)
+            else:
+                output = exec(parts[1])
+                print(output)
             continue
 
         if not provider_token:

@@ -4,6 +4,7 @@ import subprocess
 from prompt_toolkit.completion import Completer, Completion
 
 COMMANDS = [
+    "/cmd",
     "/provider_model",
     "/model",
     "/search",
