@@ -97,6 +97,8 @@ def _handle_openrouter_model(api_key, current_model):
     except Exception as e:
         print(f"Error fetching models: {e}\n", file=sys.stderr)
         return current_model
+    # Sort by creation date (newest first) as proxy for popularity
+    model_data.sort(key=lambda m: m.get("created", 0), reverse=True)
     return _select_from_models(model_data, current_model, group_key=None)
 
 
@@ -107,7 +109,7 @@ def _select_from_models(models, current_model, group_key):
 
     flat_ids = [m["id"] for m in models]
     print(f"\nCurrent model: {current_model}")
-    print("Available models:")
+    print("Available models (sorted by newest first):")
 
     idx = 1
     model_index = {}
@@ -130,6 +132,9 @@ def _select_from_models(models, current_model, group_key):
             model_index[idx] = mid
             idx += 1
 
+    print(
+        "\nTip: Type a model name or number. Partial names are matched (e.g. 'gpt' shows GPT models)."
+    )
     try:
         choice = input("Select model (number or name, Enter to keep current): ").strip()
         if not choice:
@@ -141,9 +146,29 @@ def _select_from_models(models, current_model, group_key):
                 return model_index[n]
             print("Invalid selection.\n")
             return current_model
+        # Try exact match first
         if choice in flat_ids:
             print(f"Model set to: {choice}\n")
             return choice
+        # Try partial match
+        matches = [mid for mid in flat_ids if choice.lower() in mid.lower()]
+        if len(matches) == 1:
+            print(f"Model set to: {matches[0]}\n")
+            return matches[0]
+        elif len(matches) > 1:
+            print(f"\nMultiple matches for '{choice}':")
+            for i, mid in enumerate(matches[:10], 1):
+                print(f"  {i}. {mid}")
+            if len(matches) > 10:
+                print(f"  ... and {len(matches) - 10} more")
+            try:
+                sub = input("Select number (Enter to cancel): ").strip()
+                if sub.isdigit() and 1 <= int(sub) <= len(matches):
+                    print(f"Model set to: {matches[int(sub) - 1]}\n")
+                    return matches[int(sub) - 1]
+            except (EOFError, KeyboardInterrupt):
+                print()
+            return current_model
         print(f"Unknown model '{choice}'. Keeping {current_model}\n")
     except (EOFError, KeyboardInterrupt):
         print()
