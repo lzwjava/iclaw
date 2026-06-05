@@ -32,4 +32,5 @@ public/config.json
 node_modules/
 package-lock.json
 **/package-lock.json
+uv.lock
 .coverage
