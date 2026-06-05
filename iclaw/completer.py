@@ -7,6 +7,7 @@ COMMANDS = [
     "/cmd",
     "/provider_model",
     "/model",
+    "/paste",
     "/search",
     "/provider_search",
     "/proxy",

@@ -8,7 +8,11 @@ from prompt_toolkit import PromptSession
 
 from iclaw import http
 from iclaw import log
-from iclaw.at_mention import resolve_at_mentions
+from iclaw.vision import (
+    get_clipboard_image,
+    make_multimodal_message,
+    resolve_at_mentions_with_vision,
+)
 from iclaw.commands.compact import handle_compact_command
 from iclaw.commands.export import handle_export_command
 from iclaw.commands.log import handle_log_command
@@ -37,6 +41,7 @@ COMMANDS_HELP = [
     ("/cmd", "Run shell command directly (usage: /cmd <command>)"),
     ("/provider_model", "Select and authenticate with the model provider"),
     ("/model", "Select specific model from your provider"),
+    ("/paste", "Paste image from clipboard for vision analysis"),
     ("/search", "Web search (usage: /search <query>)"),
     ("/provider_search", "Select the web search provider"),
     ("/proxy", "Set HTTP/HTTPS proxy (usage: /proxy [url|off])"),
@@ -322,6 +327,60 @@ def main():
                 output = exec(parts[1])
                 print(output)
             continue
+        if user_input == "/paste":
+            img_b64, mime = get_clipboard_image()
+            if not img_b64:
+                print(
+                    "No image found in clipboard. Copy an image first.", file=sys.stderr
+                )
+                continue
+            print(
+                "Image pasted from clipboard. Enter your question (or press Enter for general analysis):"
+            )
+            try:
+                question = input("> ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                continue
+            if not question:
+                question = "What's in this image? Describe it in detail."
+            img_part = {"base64": img_b64, "mime": mime, "path": "clipboard"}
+            msg = make_multimodal_message(question, [img_part])
+            messages.append(msg)
+            try:
+                if (
+                    model_provider == "copilot"
+                    and time.monotonic() >= token_expiry
+                    and github_token
+                ):
+                    provider_token = get_copilot_token(github_token)
+                    token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
+                chunks = _chat(
+                    model_provider,
+                    provider_token,
+                    messages,
+                    current_model,
+                    tools=TOOLS,
+                    stream=True,
+                )
+                print()
+                reply = ""
+                for chunk in chunks:
+                    print(chunk, end="", flush=True)
+                    reply += chunk
+                print("\n")
+                messages.append({"role": "assistant", "content": reply})
+                last_reply = reply
+            except UnsupportedModelError as e:
+                print(f"Error: {e}", file=sys.stderr)
+                print(
+                    "Please select a vision-capable model with /model", file=sys.stderr
+                )
+                messages.pop()
+            except Exception as e:
+                print(f"Error: {e}", file=sys.stderr)
+                messages.pop()
+            continue
 
         if not provider_token:
             print("Not authenticated. Type /provider_model first.", file=sys.stderr)
@@ -336,9 +395,10 @@ def main():
                 provider_token = get_copilot_token(github_token)
                 token_expiry = time.monotonic() + TOKEN_REFRESH_INTERVAL
 
-            messages.append(
-                {"role": "user", "content": resolve_at_mentions(user_input)}
-            )
+            # Resolve @mentions and handle images
+            resolved_text, image_parts = resolve_at_mentions_with_vision(user_input)
+            msg = make_multimodal_message(resolved_text, image_parts)
+            messages.append(msg)
             response_message = _chat(
                 model_provider, provider_token, messages, current_model, tools=TOOLS
             )
