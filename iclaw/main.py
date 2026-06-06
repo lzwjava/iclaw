@@ -33,12 +33,27 @@ from iclaw.config import (
 from iclaw.exec_tool import exec_command as exec
 from iclaw.github_api import UnsupportedModelError, chat, get_copilot_token
 from iclaw.providers import openrouter
+from iclaw.tools.browser_tool import dispatch_browser_call
 from iclaw.tools.defs import TOOLS
 from iclaw.tools.edit_tool import EditTool
 from iclaw.web_search import web_search
 
+BROWSER_TOOL_NAMES = {
+    "browser_navigate",
+    "browser_snapshot",
+    "browser_click",
+    "browser_type",
+    "browser_press",
+    "browser_scroll",
+    "browser_screenshot",
+    "browser_console",
+    "browser_back",
+    "browser_close",
+}
+
 COMMANDS_HELP = [
     ("/cmd", "Run shell command directly (usage: /cmd <command>)"),
+    ("/browse", "Navigate browser to URL and show snapshot (usage: /browse <url>)"),
     ("/provider_model", "Select and authenticate with the model provider"),
     ("/model", "Select specific model from your provider"),
     ("/paste", "Paste image from clipboard for vision analysis"),
@@ -327,6 +342,20 @@ def main():
                 output = exec(parts[1])
                 print(output)
             continue
+        if user_input == "/browse" or user_input.startswith("/browse "):
+            parts = user_input.split(maxsplit=1)
+            if len(parts) < 2 or not parts[1].strip():
+                print("Usage: /browse <url>", file=sys.stderr)
+            else:
+                url = parts[1].strip()
+                if not url.startswith(("http://", "https://")):
+                    url = "https://" + url
+                try:
+                    output = dispatch_browser_call("browser_navigate", {"url": url})
+                    print(output)
+                except Exception as e:
+                    print(f"Browser error: {e}", file=sys.stderr)
+            continue
         if user_input == "/paste":
             img_b64, mime = get_clipboard_image()
             if not img_b64:
@@ -486,6 +515,28 @@ def main():
                         log.log_verbose(
                             f"[tool] Result: Successfully edited {file_path}"
                         )
+
+                    if function_name in BROWSER_TOOL_NAMES:
+                        output = dispatch_browser_call(function_name, function_args)
+                        tool_logs.append(
+                            {
+                                "timestamp": time.time(),
+                                "function": function_name,
+                                "args": function_args,
+                                "result": output[:500] + "..."
+                                if len(output) > 500
+                                else output,
+                            }
+                        )
+                        messages.append(
+                            {
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": function_name,
+                                "content": output,
+                            }
+                        )
+                        log.log_verbose(f"[tool] Result: {output[:500]}")
 
                 response_message = _chat(
                     model_provider, provider_token, messages, current_model, tools=TOOLS
