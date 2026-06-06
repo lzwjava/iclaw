@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import asyncio
 import json
 import os
 import sys
@@ -80,6 +81,10 @@ def _chat(provider, token, messages, model, tools=None, stream=False):
 
 
 def main():
+    asyncio.run(_main())
+
+
+async def _main():
     github_token = load_github_token()
     provider_token = None
     token_expiry = 0
@@ -135,7 +140,7 @@ def main():
 
     while True:
         try:
-            user_input = session.prompt("> ").strip()
+            user_input = (await session.prompt_async("> ")).strip()
         except (EOFError, KeyboardInterrupt):
             print("\nGoodbye!")
             break

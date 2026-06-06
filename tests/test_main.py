@@ -6,8 +6,19 @@ from iclaw import main
 
 
 def _mock_session(*inputs):
-    """Return a PromptSession mock whose .prompt() yields inputs in order."""
+    """Return a PromptSession mock whose .prompt_async() yields inputs in order."""
+
     session = MagicMock()
+
+    async def _async_side_effect(*args, **kwargs):
+        val = inputs_side_effect.pop(0)
+        if isinstance(val, BaseException):
+            raise val
+        return val
+
+    inputs_side_effect = list(inputs)
+    session.prompt_async = MagicMock(side_effect=_async_side_effect)
+    # Keep .prompt() too in case anything still references it
     session.prompt.side_effect = list(inputs)
     return session
 
@@ -280,9 +291,31 @@ class TestMain(unittest.TestCase):
         self, mock_ps, mock_chat, mock_cp, mock_load, mock_http
     ):
         mock_ps.return_value = _mock_session("hello", ".exit")
+        # asyncio.run() calls time.monotonic() internally (shutdown_asyncgens
+        # etc.), and since patch("iclaw.main.time.monotonic") patches the real
+        # time.monotonic globally, those internal calls consume side_effect
+        # entries too.  Use a callable that tracks call count so we can
+        # control exactly which value the application code sees.
+        #
+        # We need: startup monotonic() returns a low value T so that
+        #   token_expiry = T + TOKEN_REFRESH_INTERVAL
+        # and later monotonic() returns a value >= token_expiry to trigger
+        # refresh.  asyncio internals may consume 0-2 calls before the app
+        # code runs.
+        call_count = {"n": 0}
+
+        def _monotonic():
+            call_count["n"] += 1
+            # First few calls may be asyncio internals; return 0 for them
+            # and for the startup call.  Once we've had at least 2 calls
+            # (startup done), switch to 99999 so the expiry check triggers.
+            if call_count["n"] <= 2:
+                return 0
+            return 99999
+
         with (
             patch("sys.stdout"),
-            patch("iclaw.main.time.monotonic", side_effect=[0, 99999, 99999, 99999]),
+            patch("iclaw.main.time.monotonic", side_effect=_monotonic),
         ):
             main.main()
         # get_copilot_token called twice: once at startup, once on refresh
