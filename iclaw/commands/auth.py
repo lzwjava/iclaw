@@ -1,8 +1,6 @@
 import sys
 from datetime import datetime, timezone
 
-import yaml
-
 from iclaw.login import get_device_code, poll_for_access_token
 
 
@@ -33,14 +31,12 @@ def handle_login_command(config_path):
         return None
 
     if github_token:
-        config = {
-            "github_token": github_token,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-        config_path.write_text(
-            yaml.dump(config, default_flow_style=False, sort_keys=False)
-        )
+        from iclaw.config import _load_config, _save_config
+
+        config = _load_config()
+        config["github_token"] = github_token
+        config["created_at"] = datetime.now(timezone.utc).isoformat()
+        _save_config(config)
         print(f"\nSaved GitHub token to {config_path}")
         return github_token
 
