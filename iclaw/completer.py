@@ -14,6 +14,7 @@ COMMANDS = [
     "/ca_bundle",
     "/log",
     "/copy",
+    "/cd",
     "/read",
     "/status",
     "/help",
@@ -118,8 +119,41 @@ class IclawCompleter(Completer):
                     )
                 return
 
-        # /cmd shell command completion
+        # /cd directory completion
         stripped = text.lstrip()
+        if stripped.startswith("/cd "):
+            prefix = stripped[4:]
+            expanded = os.path.expanduser(prefix)
+            dirname = os.path.dirname(expanded) or "."
+            basename = os.path.basename(expanded)
+            try:
+                entries = os.scandir(dirname)
+                dirs = [
+                    e.name
+                    for e in entries
+                    if e.is_dir() and e.name.startswith(basename)
+                ]
+            except (PermissionError, FileNotFoundError):
+                dirs = []
+            count = 0
+            for d in sorted(dirs):
+                if count >= 20:
+                    break
+                count += 1
+                full = (
+                    os.path.join(os.path.dirname(prefix), d)
+                    if os.path.dirname(prefix)
+                    else d
+                )
+                yield Completion(
+                    full + "/",
+                    start_position=-len(prefix),
+                    display=d + "/",
+                    display_meta="dir",
+                )
+            return
+
+        # /cmd shell command completion
         if stripped.startswith("/cmd ") or stripped == "/cmd":
             parts = stripped.split(maxsplit=1)
             if len(parts) > 1:

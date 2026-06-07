@@ -66,6 +66,7 @@ COMMANDS_HELP = [
     ("/log", "Set log verbosity (usage: /log [verbose|info])"),
     ("/copy", "Copy last Copilot response to clipboard"),
     ("/read", "Print file contents to terminal (usage: /read <path>)"),
+    ("/cd", "Change directory and restart iclaw (usage: /cd <path>)"),
     ("/clear", "Clear conversation history"),
     ("/compact", "Compact conversation history using LLM"),
     ("/export", "Export full conversation history to JSON file"),
@@ -320,6 +321,20 @@ async def _main():
             print(f"  log_level:       {log_level}")
             print(f"  cwd:             {os.getcwd()}")
             print()
+            continue
+        if user_input == "/cd" or user_input.startswith("/cd "):
+            parts = user_input.split(maxsplit=1)
+            target = (
+                os.path.expanduser(parts[1])
+                if len(parts) > 1
+                else os.path.expanduser("~")
+            )
+            if not os.path.isdir(target):
+                print(f"Not a directory: {target}", file=sys.stderr)
+            else:
+                os.chdir(target)
+                print(f"Changed to {os.getcwd()}")
+                os.execvp(sys.argv[0], sys.argv)
             continue
         if user_input == "/clear":
             messages.clear()
