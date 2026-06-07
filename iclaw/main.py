@@ -22,6 +22,7 @@ from iclaw.commands.proxy import handle_ca_bundle_command, handle_proxy_command
 from iclaw.commands.read import handle_read_command
 from iclaw.commands.search_provider import handle_search_provider_command
 from iclaw.commands.utils import handle_copy_command
+from iclaw.renderer import print_markdown
 from iclaw.completer import IclawCompleter
 from iclaw.config import (
     CONFIG_PATH,
@@ -244,9 +245,9 @@ async def _main():
                 print()
                 reply = ""
                 for chunk in chunks:
-                    print(chunk, end="", flush=True)
                     reply += chunk
-                print("\n")
+                print_markdown(reply)
+                print()
                 messages.append({"role": "assistant", "content": reply})
                 last_reply = reply
             except UnsupportedModelError as e:
@@ -402,9 +403,9 @@ async def _main():
                 print()
                 reply = ""
                 for chunk in chunks:
-                    print(chunk, end="", flush=True)
                     reply += chunk
-                print("\n")
+                print_markdown(reply)
+                print()
                 messages.append({"role": "assistant", "content": reply})
                 last_reply = reply
             except UnsupportedModelError as e:
@@ -554,7 +555,9 @@ async def _main():
             reply = response_message["content"]
             messages.append({"role": "assistant", "content": reply})
             last_reply = reply
-            log.log_info(f"\n{reply}\n")
+            print()
+            print_markdown(reply)
+            print()
         except UnsupportedModelError as e:
             print(f"Error: {e}", file=sys.stderr)
             print("Please select a different model with /model", file=sys.stderr)
