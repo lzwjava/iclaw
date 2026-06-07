@@ -35,6 +35,7 @@ from iclaw.config import (
 from iclaw.exec_tool import exec_command as exec
 from iclaw.github_api import UnsupportedModelError, chat, get_copilot_token
 from iclaw.providers import openrouter
+from iclaw.safety import check_edit_safety, check_exec_safety
 from iclaw.tools.browser_tool import dispatch_browser_call
 from iclaw.tools.defs import TOOLS
 from iclaw.tools.edit_tool import EditTool
@@ -67,6 +68,7 @@ COMMANDS_HELP = [
     ("/copy", "Copy last Copilot response to clipboard"),
     ("/read", "Print file contents to terminal (usage: /read <path>)"),
     ("/cd", "Change directory and restart iclaw (usage: /cd <path>)"),
+    ("/safety", "Set safety level (usage: /safety [low|high])"),
     ("/clear", "Clear conversation history"),
     ("/compact", "Compact conversation history using LLM"),
     ("/export", "Export full conversation history to JSON file"),
@@ -98,6 +100,7 @@ async def _main():
     proxy = settings["proxy"]
     ca_bundle = settings["ca_bundle"]
     log_level = settings["log_level"]
+    safety_level = settings["safety_level"]
     log.set_level(
         {"info": log.INFO, "verbose": log.VERBOSE}.get(log_level, log.VERBOSE)
     )
@@ -186,6 +189,7 @@ async def _main():
                     proxy=proxy,
                     ca_bundle=ca_bundle,
                     log_level=log_level,
+                    safety_level=safety_level,
                 )
             continue
         if user_input == "/model":
@@ -199,6 +203,7 @@ async def _main():
                 proxy=proxy,
                 ca_bundle=ca_bundle,
                 log_level=log_level,
+                safety_level=safety_level,
             )
             continue
         if user_input.startswith("/search") or user_input == "/search":
@@ -267,6 +272,7 @@ async def _main():
                 proxy=proxy,
                 ca_bundle=ca_bundle,
                 log_level=log_level,
+                safety_level=safety_level,
             )
             continue
         if user_input == "/proxy" or user_input.startswith("/proxy "):
@@ -281,6 +287,7 @@ async def _main():
                 proxy=proxy,
                 ca_bundle=ca_bundle,
                 log_level=log_level,
+                safety_level=safety_level,
             )
             continue
         if user_input == "/ca_bundle" or user_input.startswith("/ca_bundle "):
@@ -295,6 +302,7 @@ async def _main():
                 proxy=proxy,
                 ca_bundle=ca_bundle,
                 log_level=log_level,
+                safety_level=safety_level,
             )
             continue
         if user_input == "/log" or user_input.startswith("/log "):
@@ -310,6 +318,7 @@ async def _main():
                     proxy=proxy,
                     ca_bundle=ca_bundle,
                     log_level=log_level,
+                    safety_level=safety_level,
                 )
             continue
         if user_input == "/status":
@@ -319,8 +328,28 @@ async def _main():
             print(f"  proxy:           {proxy or '(not set)'}")
             print(f"  ca_bundle:       {ca_bundle or '(system default)'}")
             print(f"  log_level:       {log_level}")
+            print(f"  safety_level:    {safety_level}")
             print(f"  cwd:             {os.getcwd()}")
             print()
+            continue
+        if user_input == "/safety" or user_input.startswith("/safety "):
+            parts = user_input.split(maxsplit=1)
+            if len(parts) > 1 and parts[1].strip() in ("low", "high"):
+                safety_level = parts[1].strip()
+                save_session_settings(
+                    model_provider=model_provider,
+                    current_model=current_model,
+                    search_provider=search_provider,
+                    proxy=proxy,
+                    ca_bundle=ca_bundle,
+                    log_level=log_level,
+                    safety_level=safety_level,
+                )
+                print(f"Safety level set to: {safety_level}")
+            else:
+                print(f"Current safety level: {safety_level}")
+                print("Usage: /safety low  — no restrictions")
+                print("       /safety high — file mutations restricted to CWD only")
             continue
         if user_input == "/cd" or user_input.startswith("/cd "):
             parts = user_input.split(maxsplit=1)
@@ -360,8 +389,13 @@ async def _main():
             if len(parts) < 2 or not parts[1].strip():
                 print("Usage: /cmd <command>", file=sys.stderr)
             else:
-                output = exec(parts[1])
-                print(output)
+                cmd = parts[1]
+                block_reason = check_exec_safety(cmd, safety_level)
+                if block_reason:
+                    print(block_reason, file=sys.stderr)
+                else:
+                    output = exec(cmd)
+                    print(output)
             continue
         if user_input == "/browse" or user_input.startswith("/browse "):
             parts = user_input.split(maxsplit=1)
@@ -491,7 +525,13 @@ async def _main():
                         log.log_verbose(f"[tool] Result: ({len(search_context)} chars)")
 
                     if function_name == "exec":
-                        output = exec(function_args.get("command"))
+                        cmd = function_args.get("command")
+                        block_reason = check_exec_safety(cmd, safety_level)
+                        if block_reason:
+                            output = block_reason
+                            log.log_verbose(f"[safety] Blocked exec: {block_reason}")
+                        else:
+                            output = exec(cmd)
                         tool_logs.append(
                             {
                                 "timestamp": time.time(),
@@ -514,11 +554,16 @@ async def _main():
 
                     if function_name == "edit":
                         file_path = function_args.get("file_path")
-                        result = EditTool.edit(
-                            file_path, function_args.get("edit_content")
-                        )
-                        with open(file_path, "w") as f:
-                            f.write(result)
+                        block_reason = check_edit_safety(file_path, safety_level)
+                        if block_reason:
+                            result = block_reason
+                            log.log_verbose(f"[safety] Blocked edit: {block_reason}")
+                        else:
+                            result = EditTool.edit(
+                                file_path, function_args.get("edit_content")
+                            )
+                            with open(file_path, "w") as f:
+                                f.write(result)
                         tool_logs.append(
                             {
                                 "timestamp": time.time(),

@@ -48,6 +48,7 @@ def load_session_settings() -> dict:
         "proxy": config.get("proxy"),
         "ca_bundle": config.get("ca_bundle"),
         "log_level": config.get("log_level", "verbose"),
+        "safety_level": config.get("safety_level", "low"),
     }
 
 
@@ -59,6 +60,7 @@ def save_session_settings(
     proxy=None,
     ca_bundle=None,
     log_level="verbose",
+    safety_level="low",
 ) -> None:
     config = _load_config()
     config["model_provider"] = model_provider
@@ -67,4 +69,5 @@ def save_session_settings(
     config["proxy"] = proxy
     config["ca_bundle"] = ca_bundle
     config["log_level"] = log_level
+    config["safety_level"] = safety_level
     _save_config(config)
