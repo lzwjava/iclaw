@@ -22,7 +22,7 @@ New module providing centralized log output control.
 - `/log verbose` — sets level to VERBOSE
 - `/log info` — sets level to INFO
 - `/log <invalid>` — prints "Unknown log level: <invalid>. Use 'verbose' or 'info'."
-- Persisted to `config.json` as `"log_level": "verbose"` or `"log_level": "info"`
+- Persisted to `config.yaml` as `log_level: verbose` or `log_level: info`
 - Added to `COMMANDS` list in `completer.py` and `COMMANDS_HELP` in `main.py`
 
 ## Call Site Changes

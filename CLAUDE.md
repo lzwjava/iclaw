@@ -42,7 +42,7 @@ GITHUB_TOKEN_INTEGRATION=<token> python3 -m unittest discover integration_tests
 ## Architecture
 
 **Authentication flow:**
-1. `iclaw-login` runs GitHub OAuth Device Flow → saves `github_token` to `~/.config/iclaw/config.json`
+1. `iclaw-login` runs GitHub OAuth Device Flow → saves `github_token` to `~/.config/iclaw/config.yaml`
 2. `iclaw` startup reads the token via `iclaw/config.py:load_github_token()`, then exchanges it for a short-lived Copilot token (`iclaw/github_api.py:get_copilot_token()`)
 3. The Copilot token is refreshed every `TOKEN_REFRESH_INTERVAL` seconds (24 min) during the session
 

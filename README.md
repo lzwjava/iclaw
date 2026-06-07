@@ -46,8 +46,8 @@ pip install -e .
    ```
    /provider_model
    ```
-   - **Copilot**: select option 1, follow the GitHub device authorization flow. Your token is saved to `~/.config/iclaw/config.json`.
-   - **OpenRouter**: select option 2. iclaw reads `OPENROUTER_API_KEY` from the environment, or prompts for a key and saves it to `~/.config/iclaw/config.json`.
+   - **Copilot**: select option 1, follow the GitHub device authorization flow. Your token is saved to `~/.config/iclaw/config.yaml`.
+   - **OpenRouter**: select option 2. iclaw reads `OPENROUTER_API_KEY` from the environment, or prompts for a key and saves it to `~/.config/iclaw/config.yaml`.
 
 ### CLI Commands
 - `/provider_model`: Select and authenticate with the model provider.

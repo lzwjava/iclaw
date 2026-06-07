@@ -1,8 +1,9 @@
-import json
 import os
 from pathlib import Path
 
-_default_config = Path.home() / ".config" / "iclaw" / "config.json"
+import yaml
+
+_default_config = Path.home() / ".config" / "iclaw" / "config.yaml"
 CONFIG_PATH = Path(os.environ.get("ICLAW_CONFIG_PATH", str(_default_config)))
 TOKEN_REFRESH_INTERVAL = 24 * 60  # seconds
 
@@ -11,14 +12,15 @@ def _load_config() -> dict:
     if not CONFIG_PATH.exists():
         return {}
     try:
-        return json.loads(CONFIG_PATH.read_text())
-    except json.JSONDecodeError:
+        data = yaml.safe_load(CONFIG_PATH.read_text())
+        return data if isinstance(data, dict) else {}
+    except yaml.YAMLError:
         return {}
 
 
 def _save_config(config: dict) -> None:
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_PATH.write_text(json.dumps(config, indent=2))
+    CONFIG_PATH.write_text(yaml.dump(config, default_flow_style=False, sort_keys=False))
 
 
 def load_github_token():

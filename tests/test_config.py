@@ -1,6 +1,7 @@
-import json
 import unittest
 from unittest.mock import patch, MagicMock
+
+import yaml
 
 from iclaw.config import load_session_settings, save_session_settings
 
@@ -9,7 +10,9 @@ class TestConfigProxySettings(unittest.TestCase):
     def test_load_defaults_when_no_proxy_or_ca_bundle(self):
         with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = True
-            mp.read_text.return_value = json.dumps({"model_provider": "copilot"})
+            mp.read_text.return_value = yaml.dump(
+                {"model_provider": "copilot"}, default_flow_style=False, sort_keys=False
+            )
             settings = load_session_settings()
         self.assertIsNone(settings["proxy"])
         self.assertIsNone(settings["ca_bundle"])
@@ -17,11 +20,13 @@ class TestConfigProxySettings(unittest.TestCase):
     def test_load_proxy_and_ca_bundle_when_set(self):
         with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = True
-            mp.read_text.return_value = json.dumps(
+            mp.read_text.return_value = yaml.dump(
                 {
                     "proxy": "http://127.0.0.1:8080",
                     "ca_bundle": "/path/to/cert.pem",
-                }
+                },
+                default_flow_style=False,
+                sort_keys=False,
             )
             settings = load_session_settings()
         self.assertEqual(settings["proxy"], "http://127.0.0.1:8080")
@@ -30,7 +35,9 @@ class TestConfigProxySettings(unittest.TestCase):
     def test_save_session_settings_with_proxy_and_ca_bundle(self):
         with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = True
-            mp.read_text.return_value = json.dumps({"github_token": "gt"})
+            mp.read_text.return_value = yaml.dump(
+                {"github_token": "gt"}, default_flow_style=False, sort_keys=False
+            )
             mp.parent = MagicMock()
             save_session_settings(
                 model_provider="copilot",
@@ -40,7 +47,7 @@ class TestConfigProxySettings(unittest.TestCase):
                 ca_bundle="/path/cert.pem",
                 log_level="verbose",
             )
-            written = json.loads(mp.write_text.call_args[0][0])
+            written = yaml.safe_load(mp.write_text.call_args[0][0])
         self.assertEqual(written["proxy"], "http://proxy:8080")
         self.assertEqual(written["ca_bundle"], "/path/cert.pem")
         self.assertEqual(written["github_token"], "gt")
@@ -48,7 +55,9 @@ class TestConfigProxySettings(unittest.TestCase):
     def test_save_session_settings_clears_null_proxy(self):
         with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = True
-            mp.read_text.return_value = json.dumps({"proxy": "http://old:1234"})
+            mp.read_text.return_value = yaml.dump(
+                {"proxy": "http://old:1234"}, default_flow_style=False, sort_keys=False
+            )
             mp.parent = MagicMock()
             save_session_settings(
                 model_provider="copilot",
@@ -58,21 +67,25 @@ class TestConfigProxySettings(unittest.TestCase):
                 ca_bundle=None,
                 log_level="verbose",
             )
-            written = json.loads(mp.write_text.call_args[0][0])
+            written = yaml.safe_load(mp.write_text.call_args[0][0])
         self.assertIsNone(written["proxy"])
         self.assertIsNone(written["ca_bundle"])
 
     def test_load_log_level_default(self):
         with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = True
-            mp.read_text.return_value = json.dumps({})
+            mp.read_text.return_value = yaml.dump(
+                {}, default_flow_style=False, sort_keys=False
+            )
             settings = load_session_settings()
         self.assertEqual(settings["log_level"], "verbose")
 
     def test_load_log_level_set(self):
         with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = True
-            mp.read_text.return_value = json.dumps({"log_level": "info"})
+            mp.read_text.return_value = yaml.dump(
+                {"log_level": "info"}, default_flow_style=False, sort_keys=False
+            )
             settings = load_session_settings()
         self.assertEqual(settings["log_level"], "info")
 

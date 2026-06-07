@@ -4,7 +4,7 @@
 
 **Goal:** Add a `/log` command with `verbose`/`info` levels to control REPL output verbosity.
 
-**Architecture:** Central `log.py` module with `log_info()`/`log_verbose()` functions. All `print()` calls in tool modules replaced with these. Level persisted to config.json.
+**Architecture:** Central `log.py` module with `log_info()`/`log_verbose()` functions. All `print()` calls in tool modules replaced with these. Level persisted to config.yaml.
 
 **Tech Stack:** Python 3, unittest, prompt_toolkit (existing)
 

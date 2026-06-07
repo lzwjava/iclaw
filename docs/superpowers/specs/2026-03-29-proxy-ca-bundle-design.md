@@ -12,7 +12,7 @@ Add `/proxy` and `/ca_bundle` REPL commands that persist settings to config and 
 
 ### Configuration (`config.py`)
 
-Two new keys in `~/.config/iclaw/config.json`:
+Two new keys in `~/.config/iclaw/config.yaml`:
 
 - `"proxy"` — string URL (e.g., `"http://127.0.0.1:7890"`) or absent/null when disabled
 - `"ca_bundle"` — string file path (e.g., `"/path/to/ca-cert.pem"`) or absent/null for system default

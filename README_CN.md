@@ -34,7 +34,7 @@ pip install -e .
    ```
    /provider_model
    ```
-   选择 `copilot`，然后按照 GitHub 设备授权流程操作。令牌将保存到 `~/.config/iclaw/config.json`。
+   选择 `copilot`，然后按照 GitHub 设备授权流程操作。令牌将保存到 `~/.config/iclaw/config.yaml`。
 
 ### 终端命令
 - `/provider_model`: 选择并认证模型提供商。

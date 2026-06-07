@@ -18,6 +18,8 @@ import sys
 import tempfile
 import threading
 import time
+
+import yaml
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -96,11 +98,11 @@ class _FakeServer:
 
 
 def _make_config_with_token(token="fake-github-token"):
-    """Write a config.json to a temp file and return its path."""
+    """Write a config.yaml to a temp file and return its path."""
     f = tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False, prefix="iclaw_config_"
+        mode="w", suffix=".yaml", delete=False, prefix="iclaw_config_"
     )
-    json.dump({"github_token": token}, f)
+    yaml.dump({"github_token": token}, f, default_flow_style=False, sort_keys=False)
     f.close()
     return f.name
 
@@ -116,7 +118,7 @@ def _make_env(config_path=None, port=None):
     env = os.environ.copy()
     env.pop("PYTHONPATH", None)
     # Point iclaw at the temp config (or a nonexistent path for no-token tests).
-    env["ICLAW_CONFIG_PATH"] = config_path or "/tmp/iclaw_no_such_config.json"
+    env["ICLAW_CONFIG_PATH"] = config_path or "/tmp/iclaw_no_such_config.yaml"
     if port:
         env["ICLAW_GITHUB_API_BASE"] = f"http://127.0.0.1:{port}"
         env["ICLAW_COPILOT_API_BASE"] = f"http://127.0.0.1:{port}"
@@ -186,7 +188,7 @@ def _send(process, text):
 
 
 class TestReplNoToken(unittest.TestCase):
-    """REPL behaviour when no config.json exists."""
+    """REPL behaviour when no config.yaml exists."""
 
     def setUp(self):
         self.process = _start_repl(_make_env())  # no config_path → no token

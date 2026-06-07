@@ -56,10 +56,10 @@ class TestMain(unittest.TestCase):
             mp.exists.return_value = False
             self.assertIsNone(main.load_github_token())
 
-    def test_load_github_token_invalid_json(self):
+    def test_load_github_token_invalid_yaml(self):
         with patch("iclaw.config.CONFIG_PATH") as mp:
             mp.exists.return_value = True
-            mp.read_text.return_value = "not json"
+            mp.read_text.return_value = "not yaml: [invalid"
             self.assertIsNone(main.load_github_token())
 
     @patch("iclaw.main.http")
