@@ -21,34 +21,34 @@ _console_logs = []
 _element_map = {}  # ref_id -> element
 
 
-def _ensure_playwright():
+async def _ensure_playwright():
     """Lazy import and install check."""
     global _playwright
     if _playwright is None:
         try:
-            from playwright.sync_api import sync_playwright
+            from playwright.async_api import async_playwright
 
-            _playwright = sync_playwright()
+            _playwright = async_playwright()
         except ImportError:
             raise RuntimeError(
                 "playwright is not installed. Run: pip install playwright && playwright install chromium"
             )
 
 
-def _get_browser():
+async def _get_browser():
     """Get or create a persistent browser instance."""
     global _browser, _context, _page, _console_logs
-    _ensure_playwright()
+    await _ensure_playwright()
 
     if _browser is None:
-        pw = _playwright.start()
+        pw = await _playwright.start()
         headless = os.environ.get("ICLAW_BROWSER_HEADLESS", "1") == "1"
-        _browser = pw.chromium.launch(headless=headless)
-        _context = _browser.new_context(
+        _browser = await pw.chromium.launch(headless=headless)
+        _context = await _browser.new_context(
             viewport={"width": 1280, "height": 720},
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         )
-        _page = _context.new_page()
+        _page = await _context.new_page()
         _console_logs = []
 
         # Capture console messages
@@ -74,13 +74,13 @@ def _get_browser():
     return _page
 
 
-def _build_element_map(page):
+async def _build_element_map(page):
     """Build a map of ref_id -> interactive elements on the page."""
     global _element_map
     _element_map = {}
 
     # Get all interactive elements
-    elements = page.query_selector_all(
+    elements = await page.query_selector_all(
         "a, button, input, textarea, select, [role='button'], [role='link'], "
         "[role='tab'], [role='menuitem'], [onclick], [tabindex]"
     )
@@ -92,19 +92,19 @@ def _build_element_map(page):
     return _element_map
 
 
-def _get_element_snapshot(page) -> str:
+async def _get_element_snapshot(page) -> str:
     """Build a text snapshot of the page with ref IDs for interactive elements."""
-    _build_element_map(page)
+    await _build_element_map(page)
 
     # Get page title and URL
-    title = page.title()
+    title = await page.title()
     url = page.url
 
     # Get accessibility tree
     snapshot_lines = [f"Page: {title}", f"URL: {url}", ""]
 
     # Get all visible text elements with their ref IDs
-    result = page.evaluate("""() => {
+    result = await page.evaluate("""() => {
         const items = [];
         let refCounter = 0;
 
@@ -202,29 +202,29 @@ def _get_element_snapshot(page) -> str:
 # --- Public API functions (called by tool dispatch) ---
 
 
-def browser_navigate(url: str) -> str:
+async def browser_navigate(url: str) -> str:
     """Navigate to a URL and return a snapshot."""
     log_verbose(f"[browser] Navigating to {url}")
-    page = _get_browser()
+    page = await _get_browser()
     try:
-        page.goto(url, wait_until="domcontentloaded", timeout=30000)
-        page.wait_for_load_state("networkidle", timeout=10000)
+        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        await page.wait_for_load_state("networkidle", timeout=10000)
     except Exception:
         # networkidle may timeout on heavy pages, that's ok
         pass
 
-    snapshot = _get_element_snapshot(page)
+    snapshot = await _get_element_snapshot(page)
     return f"Navigated to {url}\n\n{snapshot}"
 
 
-def browser_snapshot(full: bool = False) -> str:
+async def browser_snapshot(full: bool = False) -> str:
     """Get current page snapshot with element refs."""
-    page = _get_browser()
-    snapshot = _get_element_snapshot(page)
+    page = await _get_browser()
+    snapshot = await _get_element_snapshot(page)
 
     if full:
         # Also get full page text
-        full_text = page.evaluate("() => document.body.innerText")
+        full_text = await page.evaluate("() => document.body.innerText")
         # Truncate to reasonable size
         if len(full_text) > 8000:
             full_text = full_text[:8000] + "\n... (truncated)"
@@ -233,88 +233,88 @@ def browser_snapshot(full: bool = False) -> str:
     return snapshot
 
 
-def browser_click(ref: str) -> str:
+async def browser_click(ref: str) -> str:
     """Click an element by its ref ID."""
     log_verbose(f"[browser] Clicking {ref}")
-    page = _get_browser()
+    page = await _get_browser()
 
     if ref not in _element_map:
         # Try rebuilding the map
-        _build_element_map(page)
+        await _build_element_map(page)
         if ref not in _element_map:
             return f"Error: Element {ref} not found. Take a new snapshot first."
 
     try:
         el = _element_map[ref]
-        el.scroll_into_view_if_needed()
-        el.click(timeout=5000)
-        page.wait_for_load_state("domcontentloaded", timeout=5000)
+        await el.scroll_into_view_if_needed()
+        await el.click(timeout=5000)
+        await page.wait_for_load_state("domcontentloaded", timeout=5000)
     except Exception:
         pass
 
-    snapshot = _get_element_snapshot(page)
+    snapshot = await _get_element_snapshot(page)
     return f"Clicked {ref}\n\n{snapshot}"
 
 
-def browser_type(ref: str, text: str, submit: bool = False) -> str:
+async def browser_type(ref: str, text: str, submit: bool = False) -> str:
     """Type text into an element. If submit=True, press Enter after."""
     log_verbose(f"[browser] Typing into {ref}: {text[:50]}...")
-    page = _get_browser()
+    page = await _get_browser()
 
     if ref not in _element_map:
-        _build_element_map(page)
+        await _build_element_map(page)
         if ref not in _element_map:
             return f"Error: Element {ref} not found. Take a new snapshot first."
 
     try:
         el = _element_map[ref]
-        el.scroll_into_view_if_needed()
-        el.click()
-        el.fill(text)
+        await el.scroll_into_view_if_needed()
+        await el.click()
+        await el.fill(text)
         if submit:
-            el.press("Enter")
-            page.wait_for_load_state("domcontentloaded", timeout=5000)
+            await el.press("Enter")
+            await page.wait_for_load_state("domcontentloaded", timeout=5000)
     except Exception as e:
         return f"Error typing into {ref}: {e}"
 
-    snapshot = _get_element_snapshot(page)
+    snapshot = await _get_element_snapshot(page)
     return f"Typed into {ref}\n\n{snapshot}"
 
 
-def browser_press(key: str) -> str:
+async def browser_press(key: str) -> str:
     """Press a keyboard key (Enter, Tab, Escape, ArrowDown, etc.)."""
     log_verbose(f"[browser] Pressing {key}")
-    page = _get_browser()
+    page = await _get_browser()
 
     try:
-        page.keyboard.press(key)
-        page.wait_for_load_state("domcontentloaded", timeout=3000)
+        await page.keyboard.press(key)
+        await page.wait_for_load_state("domcontentloaded", timeout=3000)
     except Exception:
         pass
 
-    snapshot = _get_element_snapshot(page)
+    snapshot = await _get_element_snapshot(page)
     return f"Pressed {key}\n\n{snapshot}"
 
 
-def browser_scroll(direction: str = "down") -> str:
+async def browser_scroll(direction: str = "down") -> str:
     """Scroll the page up or down."""
-    page = _get_browser()
+    page = await _get_browser()
     delta = 500 if direction == "down" else -500
-    page.evaluate(f"window.scrollBy(0, {delta})")
+    await page.evaluate(f"window.scrollBy(0, {delta})")
 
-    snapshot = _get_element_snapshot(page)
+    snapshot = await _get_element_snapshot(page)
     return f"Scrolled {direction}\n\n{snapshot}"
 
 
-def browser_screenshot(save_path: Optional[str] = None) -> str:
+async def browser_screenshot(save_path: Optional[str] = None) -> str:
     """Take a screenshot. Returns path to the saved image."""
-    page = _get_browser()
+    page = await _get_browser()
 
     if save_path is None:
         fd, save_path = tempfile.mkstemp(suffix=".png", prefix="iclaw_browser_")
         os.close(fd)
 
-    page.screenshot(path=save_path, full_page=False)
+    await page.screenshot(path=save_path, full_page=False)
 
     # Also return a base64 thumbnail for vision models
     with open(save_path, "rb") as f:
@@ -323,7 +323,7 @@ def browser_screenshot(save_path: Optional[str] = None) -> str:
     return f"Screenshot saved to {save_path}\nBase64 ({len(b64)} chars): data:image/png;base64,{b64[:200]}..."
 
 
-def browser_console(clear: bool = False) -> str:
+async def browser_console(clear: bool = False) -> str:
     """Get browser console output."""
     global _console_logs
 
@@ -341,26 +341,26 @@ def browser_console(clear: bool = False) -> str:
     return "\n".join(output)
 
 
-def browser_back() -> str:
+async def browser_back() -> str:
     """Navigate back in browser history."""
-    page = _get_browser()
-    page.go_back(wait_until="domcontentloaded", timeout=10000)
-    snapshot = _get_element_snapshot(page)
+    page = await _get_browser()
+    await page.go_back(wait_until="domcontentloaded", timeout=10000)
+    snapshot = await _get_element_snapshot(page)
     return f"Navigated back\n\n{snapshot}"
 
 
-def browser_close() -> str:
+async def browser_close() -> str:
     """Close the browser and clean up."""
     global _browser, _context, _page, _console_logs, _element_map
 
     if _page:
-        _page.close()
+        await _page.close()
         _page = None
     if _context:
-        _context.close()
+        await _context.close()
         _context = None
     if _browser:
-        _browser.close()
+        await _browser.close()
         _browser = None
     _console_logs.clear()
     _element_map.clear()
@@ -368,7 +368,7 @@ def browser_close() -> str:
     return "Browser closed."
 
 
-def dispatch_browser_call(function_name: str, args: dict) -> str:
+async def dispatch_browser_call(function_name: str, args: dict) -> str:
     """Dispatch a browser tool call to the appropriate function."""
     dispatch = {
         "browser_navigate": lambda a: browser_navigate(a["url"]),
@@ -390,6 +390,6 @@ def dispatch_browser_call(function_name: str, args: dict) -> str:
         return f"Unknown browser function: {function_name}"
 
     try:
-        return handler(args)
+        return await handler(args)
     except Exception as e:
         return f"Browser error: {e}"

@@ -356,7 +356,9 @@ async def _main():
                 if not url.startswith(("http://", "https://")):
                     url = "https://" + url
                 try:
-                    output = dispatch_browser_call("browser_navigate", {"url": url})
+                    output = await dispatch_browser_call(
+                        "browser_navigate", {"url": url}
+                    )
                     print(output)
                 except Exception as e:
                     print(f"Browser error: {e}", file=sys.stderr)
@@ -522,7 +524,9 @@ async def _main():
                         )
 
                     if function_name in BROWSER_TOOL_NAMES:
-                        output = dispatch_browser_call(function_name, function_args)
+                        output = await dispatch_browser_call(
+                            function_name, function_args
+                        )
                         tool_logs.append(
                             {
                                 "timestamp": time.time(),
