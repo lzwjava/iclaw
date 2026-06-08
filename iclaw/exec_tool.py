@@ -17,6 +17,8 @@ def exec_command(command: str) -> str:
         return output
     except subprocess.TimeoutExpired:
         return "Error: Command timed out after 30 seconds."
+    except KeyboardInterrupt:
+        return "Error: Command interrupted by user."
     except Exception as e:
         return f"Error executing command: {str(e)}"
 

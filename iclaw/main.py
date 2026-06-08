@@ -146,9 +146,12 @@ async def _main():
     while True:
         try:
             user_input = (await session.prompt_async("> ")).strip()
-        except (EOFError, KeyboardInterrupt):
+        except EOFError:
             print("\nGoodbye!")
             break
+        except KeyboardInterrupt:
+            print()
+            continue
 
         if not user_input:
             continue
@@ -472,6 +475,7 @@ async def _main():
             print("Not authenticated. Type /provider_model first.", file=sys.stderr)
             continue
 
+        msg_count_before = len(messages)
         try:
             if (
                 model_provider == "copilot"
@@ -622,6 +626,9 @@ async def _main():
             print(f"Error: {e}", file=sys.stderr)
             print("Please select a different model with /model", file=sys.stderr)
             messages.pop()
+        except KeyboardInterrupt:
+            del messages[msg_count_before:]
+            print("\nInterrupted.")
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
 
